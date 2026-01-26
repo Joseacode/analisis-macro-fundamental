@@ -1,4 +1,7 @@
-import type { FundamentalSnapshot } from '../../../services/fundamentalService';
+//SECTOR COMPARABLES TABLE COMPONENT
+
+import type { FundamentalSnapshot } from '../../../types/fundamental.types';
+
 
 type Buckets = { value: number; quality: number; growth: number; risk: number };
 

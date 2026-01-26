@@ -1,43 +1,72 @@
 // src/types/fundamental.types.ts
-import type { SectorCode } from './macro.types';
+export type SectorEtfSymbol =
+    | 'XLK' | 'XLY' | 'XLI' | 'XLF' | 'XLE' | 'XLB' | 'XLV' | 'XLP' | 'XLU' | 'XLRE' | 'XLC';
 
-export type FundamentalsSource = 'MOCK' | 'API';
+export type FundamentalSource = 'FMP' | 'MOCK';
 
 export interface FundamentalSnapshot {
+    // identidad (requeridas)
+    symbol: string;
     ticker: string;
-    name: string;
-    sector: SectorCode;
 
-    // Pricing / valuation
-    price: number | null;
+    // clasificación (recomendado para UI)
+    sector: string | null;
+
+    // mercado (opcionales pero útiles)
+    name?: string | null;
+    price?: number | null;
+    marketCap?: number | null;
+    currency?: string | null;
+
+    // riesgo
     beta: number | null;
+
+    // múltiplos (UI usa estos nombres)
     pe: number | null;
-    pb: number | null;         // ✅ agregado
+    pb: number | null;
     ps: number | null;
     evEbitda: number | null;
-    marketCap: number | null;
 
-    // Margins
-    grossMargin: number | null; // ✅ agregado
-    operatingMargin: number | null;
-    netMargin: number | null;   // ✅ agregado
-
-    // Health / returns
-    currentRatio: number | null;
-    debtToEquity: number | null;
+    // rentabilidad/márgenes (en %)
     roe: number | null;
+    grossMargin: number | null;
+    operatingMargin: number | null;
+    netMargin: number | null;
 
-    // Growth
-    epsGrowthYoY: number | null;
-    revenueGrowthYoY: number | null;
+    // opcional: extra ratios
+    debtToEquity?: number | null;
+    currentRatio?: number | null;
+    quickRatio?: number | null;
 
-    // provenance
-    asOf: string;
-    source: FundamentalsSource;
+    // opcional: crecimiento (en %)
+    revenueGrowthYoY?: number | null;
+    epsGrowthYoY?: number | null;
+
+    // opcional: versión TTM (si querés usarlo más adelante)
+    peTTM?: number | null;
+    pbTTM?: number | null;
+    psTTM?: number | null;
+    evToEbitdaTTM?: number | null;
+    roeTTM?: number | null;
+    grossMarginTTM?: number | null;
+    operatingMarginTTM?: number | null;
+    netMarginTTM?: number | null;
+
+    // fechas
+    asOf: string | null;
+    asOfDetails?: {
+        quote?: string | null;
+        fundamentals?: string | null;
+        holdings?: string | null;
+    };
+
+    // fuente
+    source: FundamentalSource;
 }
 
 export interface SectorFundamentalsResponse {
+    sector: SectorEtfSymbol;
     items: FundamentalSnapshot[];
-    asOf: string;
-    source: FundamentalsSource;
+    asOf: string | null;
+    source: FundamentalSource;
 }

@@ -1,5 +1,8 @@
+// src/features/fundamental/components/CompanyDrawer.tsx
+
+
 import { useEffect, useMemo, useState } from 'react';
-import type { FundamentalSnapshot } from '../../../services/fundamentalService';
+import type { FundamentalSnapshot } from '../../../types/fundamental.types';
 import type { SectorCode } from '../../../types/macro.types';
 import { SECTORS } from '../../../utils/constants';
 

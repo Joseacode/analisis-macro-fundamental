@@ -1,163 +1,333 @@
 // src/services/fundamentalService.ts
-import type { SectorCode } from '../types/macro.types';
 import type {
     FundamentalSnapshot,
+    SectorEtfSymbol,
     SectorFundamentalsResponse,
-    FundamentalsSource,
+    FundamentalSource,
 } from '../types/fundamental.types';
 
-const SECTOR_UNIVERSE: Record<SectorCode, Array<{ ticker: string; name: string }>> = {
-    XLK: [
-        { ticker: 'AAPL', name: 'Apple' },
-        { ticker: 'MSFT', name: 'Microsoft' },
-        { ticker: 'NVDA', name: 'NVIDIA' },
-        { ticker: 'AVGO', name: 'Broadcom' },
-    ],
-    XLY: [
-        { ticker: 'AMZN', name: 'Amazon' },
-        { ticker: 'TSLA', name: 'Tesla' },
-        { ticker: 'HD', name: 'Home Depot' },
-        { ticker: 'NKE', name: 'Nike' },
-    ],
-    XLI: [
-        { ticker: 'CAT', name: 'Caterpillar' },
-        { ticker: 'GE', name: 'GE Aerospace' },
-        { ticker: 'HON', name: 'Honeywell' },
-        { ticker: 'UPS', name: 'UPS' },
-    ],
-    XLF: [
-        { ticker: 'JPM', name: 'JPMorgan Chase' },
-        { ticker: 'BAC', name: 'Bank of America' },
-        { ticker: 'WFC', name: 'Wells Fargo' },
-        { ticker: 'MS', name: 'Morgan Stanley' },
-    ],
-    XLE: [
-        { ticker: 'XOM', name: 'Exxon Mobil' },
-        { ticker: 'CVX', name: 'Chevron' },
-        { ticker: 'SLB', name: 'SLB' },
-        { ticker: 'COP', name: 'ConocoPhillips' },
-    ],
-    XLB: [
-        { ticker: 'LIN', name: 'Linde' },
-        { ticker: 'APD', name: 'Air Products' },
-        { ticker: 'ECL', name: 'Ecolab' },
-        { ticker: 'NEM', name: 'Newmont' },
-    ],
-    XLV: [
-        { ticker: 'UNH', name: 'UnitedHealth' },
-        { ticker: 'JNJ', name: 'Johnson & Johnson' },
-        { ticker: 'LLY', name: 'Eli Lilly' },
-        { ticker: 'PFE', name: 'Pfizer' },
-    ],
-    XLP: [
-        { ticker: 'PG', name: 'Procter & Gamble' },
-        { ticker: 'KO', name: 'Coca-Cola' },
-        { ticker: 'PEP', name: 'PepsiCo' },
-        { ticker: 'WMT', name: 'Walmart' },
-    ],
-    XLU: [
-        { ticker: 'NEE', name: 'NextEra Energy' },
-        { ticker: 'DUK', name: 'Duke Energy' },
-        { ticker: 'SO', name: 'Southern Company' },
-        { ticker: 'EXC', name: 'Exelon' },
-    ],
-    XLRE: [
-        { ticker: 'PLD', name: 'Prologis' },
-        { ticker: 'AMT', name: 'American Tower' },
-        { ticker: 'EQIX', name: 'Equinix' },
-        { ticker: 'O', name: 'Realty Income' },
-    ],
-    XLC: [
-        { ticker: 'GOOGL', name: 'Alphabet' },
-        { ticker: 'META', name: 'Meta Platforms' },
-        { ticker: 'NFLX', name: 'Netflix' },
-        { ticker: 'DIS', name: 'Disney' },
-    ],
+const FMP_API_KEY: string = import.meta.env.VITE_FMP_API_KEY ?? '';
+const DEFAULT_KEY = 'your_api_key_here';
+
+const API_BASE_STABLE = import.meta.env.DEV
+    ? '/api/fmp'
+    : 'https://financialmodelingprep.com/stable';
+
+const API_BASE_V3 = import.meta.env.DEV
+    ? '/api/fmpv3'
+    : 'https://financialmodelingprep.com/api/v3';
+
+const HAS_KEY = Boolean(FMP_API_KEY) && FMP_API_KEY !== DEFAULT_KEY;
+
+type FmpQuoteRow = {
+    symbol: string;
+    name?: string;
+    price?: number;
+    marketCap?: number;
+    currency?: string;
+    timestamp?: number;
 };
 
-function hashToUnit(str: string): number {
-    let h = 2166136261;
-    for (let i = 0; i < str.length; i++) {
-        h ^= str.charCodeAt(i);
-        h = Math.imul(h, 16777619);
+type FmpRatiosRow = {
+    date?: string;
+    priceEarningsRatio?: number;
+    priceToBookRatio?: number;
+    priceToSalesRatio?: number;
+    debtEquityRatio?: number;
+    currentRatio?: number;
+    quickRatio?: number;
+};
+
+type FmpKeyMetricsRow = {
+    date?: string;
+    peRatioTTM?: number;
+    priceToSalesRatioTTM?: number;
+    enterpriseValueOverEBITDATTM?: number;
+
+    grossProfitMarginTTM?: number;
+    operatingProfitMarginTTM?: number;
+    netProfitMarginTTM?: number;
+
+    roeTTM?: number;
+
+    revenueGrowth?: number;
+    epsGrowth?: number;
+};
+
+type FmpProfileRow = {
+    beta?: number;
+    sector?: string;
+};
+
+// Para holdings (v3 etf-holder suele devolver array)
+type FmpHoldingRow = {
+    symbol?: string;            // a veces viene como symbol
+    asset?: string;             // a veces viene como asset
+    name?: string;
+    weightPercentage?: number;
+    weight?: number;
+};
+
+function toNum(v: unknown): number | null {
+    if (v == null) return null;
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+}
+
+function maybeToPct(v: number | null | undefined): number | null {
+    if (v == null) return null;
+    if (Math.abs(v) <= 1) return Math.round(v * 10000) / 100; // decimal -> %
+    return Math.round(v * 100) / 100;
+}
+
+async function fmpGetBase<T>(base: string, path: string, params: Record<string, string>): Promise<T> {
+    if (!HAS_KEY) throw new Error('FMP API key missing. Set VITE_FMP_API_KEY in .env.local');
+
+    const qs = new URLSearchParams({ ...params, apikey: FMP_API_KEY });
+    const url = `${base}${path}?${qs.toString()}`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`FMP ${path} failed: ${res.status} ${txt.slice(0, 200)}`);
     }
-    return (h >>> 0) / 4294967295; // 0..1
+    return (await res.json()) as T;
 }
 
-function clamp(n: number, min: number, max: number) {
-    return Math.max(min, Math.min(max, n));
+async function fmpGet<T>(path: string, params: Record<string, string>): Promise<T> {
+    return fmpGetBase<T>(API_BASE_STABLE, path, params);
 }
 
-function mockSnapshot(
-    sector: SectorCode,
-    ticker: string,
-    name: string,
-    asOf: string,
-    source: FundamentalsSource
-): FundamentalSnapshot {
-    const u = hashToUnit(`${sector}:${ticker}`);
+async function fmpGetV3<T>(path: string, params: Record<string, string>): Promise<T> {
+    return fmpGetBase<T>(API_BASE_V3, path, params);
+}
 
-    const price = Math.round((50 + u * 450) * 100) / 100;
-    const beta = Math.round(clamp(0.6 + u * 1.4, 0.5, 2.2) * 100) / 100;
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+    const out: R[] = new Array(items.length);
+    let i = 0;
 
-    const pe = Math.round(clamp(10 + u * 35, 6, 60) * 10) / 10;
-    const pb = Math.round(clamp(1 + u * 9, 0.5, 18) * 10) / 10;
-    const ps = Math.round(clamp(1 + u * 14, 0.5, 25) * 10) / 10;
-    const evEbitda = Math.round(clamp(6 + u * 18, 4, 35) * 10) / 10;
+    const workers = new Array(Math.min(limit, items.length)).fill(0).map(async () => {
+        while (true) {
+            const idx = i++;
+            if (idx >= items.length) break;
+            out[idx] = await fn(items[idx]);
+        }
+    });
 
-    const grossMargin = Math.round(clamp(0.25 + u * 0.45, 0.15, 0.8) * 1000) / 10; // %
-    const operatingMargin = Math.round(clamp(0.06 + u * 0.34, 0.02, 0.45) * 1000) / 10; // %
-    const netMargin = Math.round(clamp(-0.03 + u * 0.28, -0.1, 0.35) * 1000) / 10; // %
+    await Promise.all(workers);
+    return out;
+}
 
-    const currentRatio = Math.round(clamp(0.8 + u * 1.8, 0.5, 3.5) * 100) / 100;
-    const debtToEquity = Math.round(clamp(0.2 + u * 2.2, 0, 4.0) * 100) / 100;
-    const roe = Math.round(clamp(0.06 + u * 0.26, 0, 0.35) * 1000) / 10; // %
+// cache 5m
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const cache = new Map<string, { t: number; v: FundamentalSnapshot }>();
 
-    const epsGrowthYoY = Math.round(clamp(-0.15 + u * 0.55, -0.3, 0.6) * 1000) / 10; // %
-    const revenueGrowthYoY = Math.round(clamp(-0.05 + u * 0.35, -0.2, 0.4) * 1000) / 10; // %
+function cacheGet(key: string): FundamentalSnapshot | null {
+    const hit = cache.get(key);
+    if (!hit) return null;
+    if (Date.now() - hit.t > CACHE_TTL_MS) {
+        cache.delete(key);
+        return null;
+    }
+    return hit.v;
+}
+function cacheSet(key: string, v: FundamentalSnapshot) {
+    cache.set(key, { t: Date.now(), v });
+}
 
-    const marketCap = Math.round((10 + u * 990) * 1_000_000_000);
+async function fetchQuote(symbol: string) {
+    const data = await fmpGet<FmpQuoteRow[]>('/quote', { symbol });
+    const row = Array.isArray(data) ? data[0] ?? null : null;
+    const asOf = row?.timestamp
+        ? new Date(row.timestamp * 1000).toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+    return { row, asOf };
+}
 
+async function fetchRatios(symbol: string) {
+    const data = await fmpGet<FmpRatiosRow[]>('/ratios', { symbol, limit: '1' });
+    const row = Array.isArray(data) ? data[0] ?? null : null;
+    return { row, asOf: row?.date ?? null };
+}
+
+async function fetchKeyMetricsTTM(symbol: string) {
+    const data = await fmpGet<FmpKeyMetricsRow[]>('/key-metrics-ttm', { symbol });
+    const row = Array.isArray(data) ? data[0] ?? null : null;
+    return { row, asOf: row?.date ?? null };
+}
+
+async function fetchKeyMetricsFallback(symbol: string) {
+    const data = await fmpGet<FmpKeyMetricsRow[]>('/key-metrics', { symbol, limit: '1' });
+    const row = Array.isArray(data) ? data[0] ?? null : null;
+    return { row, asOf: row?.date ?? null };
+}
+
+async function fetchProfile(symbol: string) {
+    const data = await fmpGet<FmpProfileRow[]>('/profile', { symbol });
+    return Array.isArray(data) ? data[0] ?? null : null;
+}
+
+async function fetchEtfHoldings(etfSymbol: string) {
+    // ✅ USAR V3 (legacy) en lugar de /stable/etf/holdings
+    // GET /api/v3/etf-holder/{ETF}
+    const data = await fmpGetV3<any>(`/etf-holder/${encodeURIComponent(etfSymbol)}`, {});
+
+    let rows: FmpHoldingRow[] = [];
+    if (Array.isArray(data)) rows = data as FmpHoldingRow[];
+    else if (data?.holdings && Array.isArray(data.holdings)) rows = data.holdings as FmpHoldingRow[];
+    else if (data?.data && Array.isArray(data.data)) rows = data.data as FmpHoldingRow[];
+
+    const asOf = new Date().toISOString().slice(0, 10);
+    return { rows, asOf };
+}
+
+function makeEmptySnapshot(symbol: string, source: FundamentalSource): FundamentalSnapshot {
+    const upper = symbol.toUpperCase();
     return {
-        ticker,
-        name,
-        sector,
+        symbol: upper,
+        ticker: upper,
+        sector: null,
+        beta: null,
 
-        price,
-        beta,
-        pe,
-        pb,
-        ps,
-        evEbitda,
-        marketCap,
+        pe: null,
+        pb: null,
+        ps: null,
+        evEbitda: null,
 
-        grossMargin,
-        operatingMargin,
-        netMargin,
+        roe: null,
+        grossMargin: null,
+        operatingMargin: null,
+        netMargin: null,
 
-        currentRatio,
-        debtToEquity,
-        roe,
-
-        epsGrowthYoY,
-        revenueGrowthYoY,
-
-        asOf,
+        asOf: null,
         source,
     };
 }
 
-export async function fetchFundamentals(sector: SectorCode): Promise<SectorFundamentalsResponse> {
-    const source: FundamentalsSource = 'MOCK';
-    const asOf = new Date().toISOString().slice(0, 10);
+export async function fetchFundamentals(symbol: string): Promise<FundamentalSnapshot> {
+    const upper = symbol.toUpperCase();
+    const key = `fund:${upper}`;
+    const cached = cacheGet(key);
+    if (cached) return cached;
 
-    const universe = SECTOR_UNIVERSE[sector] ?? [];
-    const items = universe.map((c) => mockSnapshot(sector, c.ticker, c.name, asOf, source));
+    if (!HAS_KEY) {
+        const mock = makeEmptySnapshot(upper, 'MOCK');
+        cacheSet(key, mock);
+        return mock;
+    }
 
-    return { items, asOf, source };
+    const [{ row: quote, asOf: quoteAsOf }, profile] = await Promise.all([
+        fetchQuote(upper),
+        fetchProfile(upper).catch(() => null),
+    ]);
+
+    // Key Metrics TTM con fallback
+    let km: FmpKeyMetricsRow | null = null;
+    let kmAsOf: string | null = null;
+    try {
+        const r = await fetchKeyMetricsTTM(upper);
+        km = r.row;
+        kmAsOf = r.asOf;
+    } catch {
+        const r2 = await fetchKeyMetricsFallback(upper).catch(() => ({ row: null, asOf: null }));
+        km = r2.row;
+        kmAsOf = r2.asOf;
+    }
+
+    const { row: ratios, asOf: ratiosAsOf } = await fetchRatios(upper).catch(() => ({ row: null, asOf: null }));
+
+    // múltiplos (pb viene de ratios)
+    const peTTM = toNum(km?.peRatioTTM ?? ratios?.priceEarningsRatio);
+    const pb = toNum(ratios?.priceToBookRatio);
+    const psTTM = toNum(km?.priceToSalesRatioTTM ?? ratios?.priceToSalesRatio);
+    const evToEbitdaTTM = toNum(km?.enterpriseValueOverEBITDATTM);
+
+    // márgenes (%)
+    const grossMarginTTM = maybeToPct(toNum(km?.grossProfitMarginTTM));
+    const operatingMarginTTM = maybeToPct(toNum(km?.operatingProfitMarginTTM));
+    const netMarginTTM = maybeToPct(toNum(km?.netProfitMarginTTM));
+    const roeTTM = maybeToPct(toNum(km?.roeTTM));
+
+    const snap: FundamentalSnapshot = {
+        symbol: upper,
+        ticker: upper,
+
+        sector: profile?.sector ?? null,
+        beta: toNum(profile?.beta),
+
+        name: quote?.name ?? null,
+        price: toNum(quote?.price),
+        marketCap: toNum(quote?.marketCap),
+        currency: quote?.currency ?? null,
+
+        // UI fields (legacy)
+        pe: peTTM,
+        pb,
+        ps: psTTM,
+        evEbitda: evToEbitdaTTM,
+        roe: roeTTM,
+        grossMargin: grossMarginTTM,
+        operatingMargin: operatingMarginTTM,
+        netMargin: netMarginTTM,
+
+        // extras
+        debtToEquity: toNum(ratios?.debtEquityRatio),
+        currentRatio: toNum(ratios?.currentRatio),
+        quickRatio: toNum(ratios?.quickRatio),
+
+        revenueGrowthYoY: maybeToPct(toNum(km?.revenueGrowth)),
+        epsGrowthYoY: maybeToPct(toNum(km?.epsGrowth)),
+
+        // TTM (por si lo querés explícito)
+        peTTM,
+        pbTTM: pb,
+        psTTM,
+        evToEbitdaTTM,
+        roeTTM,
+        grossMarginTTM,
+        operatingMarginTTM,
+        netMarginTTM,
+
+        asOf: kmAsOf ?? ratiosAsOf ?? quoteAsOf ?? null,
+        asOfDetails: {
+            quote: quoteAsOf ?? null,
+            fundamentals: kmAsOf ?? ratiosAsOf ?? null,
+        },
+
+        source: 'FMP',
+    };
+
+    cacheSet(key, snap);
+    return snap;
 }
 
-// compat
-export const fetchSectorFundamentals = fetchFundamentals;
+export async function fetchSectorFundamentals(
+    sectorEtf: SectorEtfSymbol,
+    opts?: { top?: number; concurrency?: number }
+): Promise<SectorFundamentalsResponse> {
+    if (!HAS_KEY) {
+        return { sector: sectorEtf, items: [], asOf: null, source: 'MOCK' };
+    }
 
-export type { FundamentalSnapshot, SectorFundamentalsResponse };
+    const top = opts?.top ?? 15;
+    const concurrency = opts?.concurrency ?? 5;
+
+    const { rows: holdings, asOf: holdingsAsOf } = await fetchEtfHoldings(sectorEtf);
+
+    const symbols = holdings
+        .map((h) => (h.symbol ?? h.asset ?? '').toUpperCase().trim())
+        .filter(Boolean)
+        .slice(0, top);
+
+    const items = await mapLimit(symbols, concurrency, async (sym) => {
+        const s = await fetchFundamentals(sym);
+        return {
+            ...s,
+            sector: s.sector ?? sectorEtf,
+            asOfDetails: { ...s.asOfDetails, holdings: holdingsAsOf },
+        };
+    });
+
+    const asOf = items.find((x) => x.asOf)?.asOf ?? null;
+    return { sector: sectorEtf, items, asOf, source: 'FMP' };
+}

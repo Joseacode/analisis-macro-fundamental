@@ -1,13 +1,13 @@
+//FNDAMENTAL DASHBOARD COMPONENT
+
 import { useEffect, useMemo, useState } from 'react';
 
 import type { SectorCode } from '../../../types/macro.types';
 import { SECTORS } from '../../../utils/constants';
 
-import {
-    fetchSectorFundamentals,
-    type FundamentalSnapshot,
-    type SectorFundamentalsResponse,
-} from '../../../services/fundamentalService';
+import { fetchSectorFundamentals } from '../../../services/fundamentalService';
+import type { FundamentalSnapshot, SectorFundamentalsResponse } from '../../../types/fundamental.types';
+
 
 import { scoreFundamentals } from '../utils/scoring';
 import { SectorComparablesTable } from './SectorComparablesTable';
@@ -73,7 +73,7 @@ export function FundamentalDashboard() {
 
             const res: SectorFundamentalsResponse = await fetchSectorFundamentals(s);
             setItems(Array.isArray(res.items) ? res.items : []);
-            setMeta({ asOf: res.asOf, source: res.source });
+            setMeta({ asOf: res.asOf ?? undefined, source: res.source ?? undefined });
 
             // reset selección al cambiar sector
             setSelected(null);
@@ -356,7 +356,7 @@ export function FundamentalDashboard() {
                 {/* Comparables table */}
                 <SectorComparablesTable
                     items={scored}
-                    selectedTicker={selected?.ticker ?? null}
+                    selectedTicker={selected?.ticker ?? undefined}
                     onSelect={(it) => openDrawer(it)}
                 />
             </div>
