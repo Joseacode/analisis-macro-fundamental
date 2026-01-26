@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SectorCode } from '../../../types/macro.types';
 import { SECTORS } from '../../../utils/constants';
 import { fetchFundamentals, type FundamentalSnapshot } from '../../../services/fundamentalService';
+import { scoreFundamentals } from '../utils/scoring';
+import { SectorComparablesTable } from './SectorComparablesTable';
+
 
 function fmtNum(v: number | null, digits = 2) {
     if (v === null || Number.isNaN(v)) return '—';
@@ -28,6 +31,12 @@ export function FundamentalDashboard() {
     const [source, setSource] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const scored = useMemo(() => scoreFundamentals(items), [items]);
+
+    const top3 = useMemo(() => {
+        return [...scored].sort((a, b) => b.score - a.score).slice(0, 3);
+    }, [scored]);
 
     useEffect(() => {
         let alive = true;
@@ -158,7 +167,64 @@ export function FundamentalDashboard() {
                         </div>
                     </div>
                 ))}
+
+
             </div>
+
+            {/* Shortlist + Comparables */}
+            <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
+                <div
+                    style={{
+                        borderRadius: 16,
+                        border: '1px solid rgba(255,255,255,0.10)',
+                        background: 'rgba(255,255,255,0.03)',
+                        padding: 12,
+                    }}
+                >
+                    <div style={{ fontWeight: 900, marginBottom: 6 }}>Shortlist (Top 3)</div>
+                    <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 10 }}>
+                        Top relativo dentro del sector (Value/Quality/Growth/Risk).
+                    </div>
+
+                    {top3.map((it) => (
+                        <div
+                            key={it.ticker}
+                            style={{
+                                borderRadius: 14,
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                background: 'rgba(0,255,136,0.06)',
+                                padding: 10,
+                                marginBottom: 10,
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                                <div>
+                                    <div style={{ fontWeight: 900 }}>{it.ticker}</div>
+                                    <div style={{ fontSize: 11, opacity: 0.7 }}>{it.name}</div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontWeight: 900 }}>{Math.round(it.score)}</div>
+                                    <div style={{ fontSize: 11, opacity: 0.7 }}>score</div>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, fontSize: 11 }}>
+                                <div>Value<br /><b>{Math.round(it.buckets.value)}</b></div>
+                                <div>Quality<br /><b>{Math.round(it.buckets.quality)}</b></div>
+                                <div>Growth<br /><b>{Math.round(it.buckets.growth)}</b></div>
+                                <div>Risk<br /><b>{Math.round(it.buckets.risk)}</b></div>
+                            </div>
+
+                            <div style={{ marginTop: 8, fontSize: 11, opacity: 0.65 }}>
+                                As of {it.asOf} · {it.source}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <SectorComparablesTable items={scored} />
+            </div>
+
         </div>
     );
 }
