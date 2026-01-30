@@ -1,3 +1,5 @@
+// server/routes/earningsRoutes.cjs
+
 const path = require("path");
 const fs = require("fs/promises");
 
@@ -23,6 +25,20 @@ function div(a, b) {
     return a / b;
 }
 
+function round2(n) {
+    return typeof n === "number" && Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
+}
+
+function fmtPct(n) {
+    if (n == null) return null;
+    return `${round2(n).toFixed(2)}%`;
+}
+
+function fmtX(n) {
+    if (n == null) return null;
+    return `${round2(n).toFixed(2)}x`;
+}
+
 function computeDerived(bundle) {
     const inc = bundle?.reported?.income ?? {};
     const cf = bundle?.reported?.cashflow ?? {};
@@ -34,25 +50,52 @@ function computeDerived(bundle) {
 
     const ocf = safeNum(cf.operating_cash_flow);
     const capex = safeNum(cf.capex);
-    const fcf = safeNum(cf.free_cash_flow) ?? (ocf != null && capex != null ? ocf - capex : null);
+
+    // ✅ REGLA: si capex ya viene NEGATIVO (salida de caja), FCF = OCF + Capex
+    // Si algún día lo cargás positivo (raro), también queda correcto porque suma lo resta.
+    const fcf =
+        safeNum(cf.free_cash_flow) ??
+        (ocf != null && capex != null ? ocf + capex : null);
+
+    const grossMargin = pct(grossProfit, revenue);
+    const opMargin = pct(opIncome, revenue);
+    const netMargin = pct(netIncome, revenue);
+    const fcfMargin = pct(fcf, revenue);
+    const fcfToNI = div(fcf, netIncome);
 
     const metricRows = [
-        { key: "gross_margin", label: "Gross Margin", category: "Profitability", unit: "%", value_reported: pct(grossProfit, revenue), value_adjusted: null, trend_qoq: null, trend_yoy: null },
-        { key: "operating_margin", label: "Operating Margin", category: "Profitability", unit: "%", value_reported: pct(opIncome, revenue), value_adjusted: null, trend_qoq: null, trend_yoy: null },
-        { key: "net_margin", label: "Net Margin", category: "Profitability", unit: "%", value_reported: pct(netIncome, revenue), value_adjusted: null, trend_qoq: null, trend_yoy: null },
+        { key: "gross_margin", label: "Gross Margin", category: "Profitability", unit: "%", value_reported: grossMargin, value_adjusted: null, trend_qoq: null, trend_yoy: null },
+        { key: "operating_margin", label: "Operating Margin", category: "Profitability", unit: "%", value_reported: opMargin, value_adjusted: null, trend_qoq: null, trend_yoy: null },
+        { key: "net_margin", label: "Net Margin", category: "Profitability", unit: "%", value_reported: netMargin, value_adjusted: null, trend_qoq: null, trend_yoy: null },
 
         { key: "ocf", label: "Operating Cash Flow (OCF)", category: "Quality", unit: "USD", value_reported: ocf, value_adjusted: null, trend_qoq: null, trend_yoy: null },
         { key: "capex", label: "Capex", category: "Quality", unit: "USD", value_reported: capex, value_adjusted: null, trend_qoq: null, trend_yoy: null },
+
+        // ✅ ahora FCF sale coherente (185 + (-32) = 153)
         { key: "fcf", label: "Free Cash Flow (FCF)", category: "Quality", unit: "USD", value_reported: fcf, value_adjusted: null, trend_qoq: null, trend_yoy: null },
-        { key: "fcf_margin", label: "FCF Margin", category: "Quality", unit: "%", value_reported: pct(fcf, revenue), value_adjusted: null, trend_qoq: null, trend_yoy: null },
-        { key: "fcf_to_ni", label: "FCF / Net Income", category: "Quality", unit: "x", value_reported: div(fcf, netIncome), value_adjusted: null, trend_qoq: null, trend_yoy: null }
+        { key: "fcf_margin", label: "FCF Margin", category: "Quality", unit: "%", value_reported: fcfMargin, value_adjusted: null, trend_qoq: null, trend_yoy: null },
+        { key: "fcf_to_ni", label: "FCF / Net Income", category: "Quality", unit: "x", value_reported: fcfToNI, value_adjusted: null, trend_qoq: null, trend_yoy: null }
     ];
+
+    // ✅ Highlights MVP (sin humo)
+    const highlights = [];
+    if (grossMargin != null) highlights.push(`Gross margin: ${fmtPct(grossMargin)}`);
+    if (opMargin != null) highlights.push(`Operating margin: ${fmtPct(opMargin)}`);
+    if (fcfMargin != null) highlights.push(`FCF margin: ${fmtPct(fcfMargin)}`);
+    if (fcfToNI != null) highlights.push(`FCF / NI: ${fmtX(fcfToNI)}`);
+
+    // señal rápida de calidad (simple)
+    if (fcfToNI != null) {
+        if (fcfToNI >= 1.1) highlights.push("Earnings quality: strong cash conversion");
+        else if (fcfToNI >= 0.8) highlights.push("Earnings quality: ok cash conversion");
+        else highlights.push("Earnings quality: weak cash conversion");
+    }
 
     return {
         ...bundle,
         derived: {
             metricRows,
-            highlights: []
+            highlights
         }
     };
 }

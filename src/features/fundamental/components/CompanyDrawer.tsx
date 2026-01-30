@@ -53,7 +53,7 @@ type PeerStats = {
     currentRatio?: number;
 };
 
-type TabKey = 'overview' | 'valuation' | 'comparables' | 'projection' | 'memo' | 'fundamental';
+type TabKey = 'overview' | 'valuation' | 'comparables' | 'earnings' | 'projection' | 'memo';
 
 interface CompanyDrawerProps {
     open: boolean;
@@ -117,8 +117,17 @@ export function CompanyDrawer({
         }
     }
 
+    function openEarningsTab() {
+        setActiveTab('earnings');
+        if (!earningsData && !earningsLoading) {
+            loadEarnings(ticker);
+        }
+    }
+
+
 
     if (!open || !item) return null;
+    const ticker = item.ticker;
 
     // opcional: si cambia el ticker, limpiamos estado
     // (lo ideal: useEffect con item.ticker, pero acá te dejo mínimo sin refactor grande)
@@ -269,13 +278,10 @@ export function CompanyDrawer({
                             📝 Memo
                         </div>
                         <div
-                            style={drawerStyles.tab(activeTab === 'fundamental')}
-                            onClick={() => {
-                                setActiveTab('fundamental');
-                                loadEarnings(item.ticker);
-                            }}
+                            style={drawerStyles.tab(activeTab === 'earnings')}
+                            onClick={openEarningsTab}
                         >
-                            🧾 Fundamental
+                            🧾 Earnings
                         </div>
 
                     </div>
@@ -312,13 +318,13 @@ export function CompanyDrawer({
                     )}
 
 
-                    {activeTab === 'fundamental' && (
+                    {activeTab === 'earnings' && (
                         <EarningsPanel
                             ticker={item.ticker}
                             data={earningsData}
                             loading={earningsLoading}
                             error={earningsError}
-                            onRefresh={() => loadEarnings(item.ticker)}
+                            onRefresh={() => loadEarnings(ticker)}
                         />
                     )}
 
