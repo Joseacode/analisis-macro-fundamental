@@ -1,6 +1,10 @@
 // CompanyDrawer.tsx
 import { useState, useMemo } from 'react';
 import ProjectionTab from '../../../components/ProjectionTab';
+import EarningsPanel from "./EarningsPanel";
+import { fetchEarnings } from "../../../services/earningsService";
+import type { EarningsBundle } from "../../../types/earnings.types";
+
 
 // ✅ Types
 type Buckets = { value: number; quality: number; growth: number; risk: number };
@@ -49,7 +53,7 @@ type PeerStats = {
     currentRatio?: number;
 };
 
-type TabKey = 'overview' | 'valuation' | 'comparables' | 'projection' | 'memo';
+type TabKey = 'overview' | 'valuation' | 'comparables' | 'projection' | 'memo' | 'fundamental';
 
 interface CompanyDrawerProps {
     open: boolean;
@@ -95,8 +99,30 @@ export function CompanyDrawer({
     const [growthRate, setGrowthRate] = useState(7);
     const [marginOfSafety, setMarginOfSafety] = useState(25);
     const [currentYield, setCurrentYield] = useState(5.3);
+    const [earningsData, setEarningsData] = useState<EarningsBundle | null>(null);
+    const [earningsLoading, setEarningsLoading] = useState(false);
+    const [earningsError, setEarningsError] = useState<string | null>(null);
+
+    async function loadEarnings(ticker: string) {
+        try {
+            setEarningsError(null);
+            setEarningsLoading(true);
+            const d = await fetchEarnings(ticker);
+            setEarningsData(d);
+        } catch (e: any) {
+            setEarningsData(null);
+            setEarningsError(String(e?.message ?? e));
+        } finally {
+            setEarningsLoading(false);
+        }
+    }
+
 
     if (!open || !item) return null;
+
+    // opcional: si cambia el ticker, limpiamos estado
+    // (lo ideal: useEffect con item.ticker, pero acá te dejo mínimo sin refactor grande)
+
 
     // ✅ Cálculos de Graham
     const currentEPS = item.epsTTM ?? 0;
@@ -242,6 +268,16 @@ export function CompanyDrawer({
                         >
                             📝 Memo
                         </div>
+                        <div
+                            style={drawerStyles.tab(activeTab === 'fundamental')}
+                            onClick={() => {
+                                setActiveTab('fundamental');
+                                loadEarnings(item.ticker);
+                            }}
+                        >
+                            🧾 Fundamental
+                        </div>
+
                     </div>
 
                 </div>
@@ -275,6 +311,17 @@ export function CompanyDrawer({
                         <ComparablesTab item={item} allCompanies={allCompanies} />
                     )}
 
+
+                    {activeTab === 'fundamental' && (
+                        <EarningsPanel
+                            ticker={item.ticker}
+                            data={earningsData}
+                            loading={earningsLoading}
+                            error={earningsError}
+                            onRefresh={() => loadEarnings(item.ticker)}
+                        />
+                    )}
+
                     {activeTab === 'projection' && (
                         <ProjectionTab item={item} peerStats={peerStats} />
                     )}
@@ -282,6 +329,8 @@ export function CompanyDrawer({
                     {activeTab === 'memo' && (
                         <MemoTab item={item} peerStats={peerStats} />
                     )}
+
+
                 </div>
             </div>
         </>
