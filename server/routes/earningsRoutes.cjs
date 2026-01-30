@@ -3,15 +3,14 @@
 const path = require("path");
 const fs = require("fs/promises");
 
-// ✅ NUEVO: imports para SEC discovery
+// ✅ Imports para SEC discovery y parsing
 const { discoverEarningsFromSEC } = require("../services/secEdgar.cjs");
 const { resolveEarningsSource } = require("../services/earningsSourceResolver.cjs");
+const { buildSecPrimaryDocUrl, fetchSecDocumentText } = require("../services/secArchives.cjs");
+const { extractBundleFromInlineXbrl } = require("../services/inlineXbrlParser.cjs");
 
 // Lee JSON mock una vez por request (simple). Luego optimizamos con cache en memoria.
 const MOCK_FILE = path.resolve(__dirname, "..", "data", "earningsMock.json");
-
-// ✅ A4: fetch documento primario desde SEC (sin parsear)
-const { buildSecPrimaryDocUrl, fetchSecDocumentText } = require("../services/secArchives.cjs");
 
 async function readMock() {
     const txt = await fs.readFile(MOCK_FILE, "utf-8");
@@ -46,6 +45,14 @@ function fmtX(n) {
     return `${round2(n).toFixed(2)}x`;
 }
 
+// ✅ Helper: FCF robusto (extraído como función independiente)
+function computeFCF(ocf, capex) {
+    if (ocf == null || capex == null) return null;
+    // Si capex viene negativo (común), FCF = OCF + capex
+    // Si capex es positivo (raro), FCF = OCF - capex
+    return capex < 0 ? ocf + capex : ocf - capex;
+}
+
 function computeDerived(bundle) {
     const inc = bundle?.reported?.income ?? {};
     const cf = bundle?.reported?.cashflow ?? {};
@@ -58,11 +65,8 @@ function computeDerived(bundle) {
     const ocf = safeNum(cf.operating_cash_flow);
     const capex = safeNum(cf.capex);
 
-    // ✅ REGLA: si capex ya viene NEGATIVO (salida de caja), FCF = OCF + Capex
-    // Si algún día lo cargás positivo (raro), también queda correcto porque suma lo resta.
-    const fcf =
-        safeNum(cf.free_cash_flow) ??
-        (ocf != null && capex != null ? ocf + capex : null);
+    // ✅ Usar helper computeFCF para consistencia
+    const fcf = safeNum(cf.free_cash_flow) ?? computeFCF(ocf, capex);
 
     const grossMargin = pct(grossProfit, revenue);
     const opMargin = pct(opIncome, revenue);
@@ -78,7 +82,7 @@ function computeDerived(bundle) {
         { key: "ocf", label: "Operating Cash Flow (OCF)", category: "Quality", unit: "USD", value_reported: ocf, value_adjusted: null, trend_qoq: null, trend_yoy: null },
         { key: "capex", label: "Capex", category: "Quality", unit: "USD", value_reported: capex, value_adjusted: null, trend_qoq: null, trend_yoy: null },
 
-        // ✅ ahora FCF sale coherente (185 + (-32) = 153)
+        // ✅ ahora FCF sale coherente usando computeFCF
         { key: "fcf", label: "Free Cash Flow (FCF)", category: "Quality", unit: "USD", value_reported: fcf, value_adjusted: null, trend_qoq: null, trend_yoy: null },
         { key: "fcf_margin", label: "FCF Margin", category: "Quality", unit: "%", value_reported: fcfMargin, value_adjusted: null, trend_qoq: null, trend_yoy: null },
         { key: "fcf_to_ni", label: "FCF / Net Income", category: "Quality", unit: "x", value_reported: fcfToNI, value_adjusted: null, trend_qoq: null, trend_yoy: null }
@@ -112,7 +116,7 @@ function normalizeSymbol(sym) {
 }
 
 function registerEarningsRoutes(app) {
-    console.log("✓ Rutas Earnings registradas (MOCK + SEC Discovery)");
+    console.log("✓ Rutas Earnings registradas (MOCK + SEC Discovery + XBRL)");
 
     // ✅ 1. Debug endpoint (más específico primero)
     app.get("/api/earnings/_debug", async (_req, res) => {
@@ -129,7 +133,7 @@ function registerEarningsRoutes(app) {
         }
     });
 
-    // ✅ 2. NUEVO: Source discovery endpoint (SEC EDGAR)
+    // ✅ 2. Source discovery endpoint (SEC EDGAR)
     app.get("/api/earnings/source/:symbol", async (req, res) => {
         try {
             const sym = normalizeSymbol(req.params.symbol);
@@ -153,30 +157,7 @@ function registerEarningsRoutes(app) {
         }
     });
 
-    // ✅ 3. Mock data endpoint (catch-all al final)
-    app.get("/api/earnings/:symbol", async (req, res) => {
-        try {
-            const sym = normalizeSymbol(req.params.symbol);
-            const data = await readMock();
-            const bundle = data[sym];
-
-            if (!bundle) {
-                return res.status(404).json({
-                    error: "No mock data for ticker",
-                    ticker: sym,
-                    available: Object.keys(data)
-                });
-            }
-
-            // MVP: computed derived metrics
-            const out = computeDerived(bundle);
-            res.json(out);
-        } catch (e) {
-            console.error("✗ ERROR en earnings:", e.message);
-            res.status(500).json({ error: "Earnings error", detail: String(e?.message ?? e) });
-        }
-    });
-
+    // ✅ 3. Document preview endpoint
     app.get("/api/earnings/doc/:symbol", async (req, res) => {
         try {
             const sym = normalizeSymbol(req.params.symbol);
@@ -231,8 +212,81 @@ function registerEarningsRoutes(app) {
             });
         }
     });
+
+    // ✅ 4. NUEVO: XBRL parsing endpoint (inline XBRL extraction)
+    app.get("/api/earnings/xbrl/:symbol", async (req, res) => {
+        try {
+            const sym = normalizeSymbol(req.params.symbol);
+
+            const sec = await discoverEarningsFromSEC(sym);
+            const resolved = resolveEarningsSource(sec);
+
+            if (!sec?.ok) {
+                return res.status(404).json({ ok: false, ticker: sym, error: sec?.error || "SEC discovery failed" });
+            }
+            if (!resolved?.selected) {
+                return res.status(404).json({ ok: false, ticker: sym, error: "No selected filing", resolved });
+            }
+
+            const url = buildSecPrimaryDocUrl({
+                cik: sec.cik,
+                accessionNumber: resolved.selected.accessionNumber,
+                primaryDocument: resolved.selected.primaryDocument,
+            });
+
+            const { text: html, contentType } = await fetchSecDocumentText(url, { timeoutMs: 20000 });
+
+            // Extraer bundle desde Inline XBRL
+            const bundle = extractBundleFromInlineXbrl({
+                ticker: sym,
+                filingDate: resolved.selected.filingDate,
+                html,
+            });
+
+            // ✅ Usar la misma función computeDerived (con highlights)
+            const out = computeDerived(bundle);
+
+            res.json({
+                ok: true,
+                ticker: sym,
+                selected: resolved.selected,
+                url,
+                contentType,
+                bundle: out,
+            });
+        } catch (e) {
+            console.error("✗ ERROR en earnings/xbrl:", e.message);
+            res.status(500).json({
+                ok: false,
+                error: "Earnings XBRL error",
+                detail: String(e?.message ?? e),
+            });
+        }
+    });
+
+    // ✅ 5. Mock data endpoint (catch-all al final)
+    app.get("/api/earnings/:symbol", async (req, res) => {
+        try {
+            const sym = normalizeSymbol(req.params.symbol);
+            const data = await readMock();
+            const bundle = data[sym];
+
+            if (!bundle) {
+                return res.status(404).json({
+                    error: "No mock data for ticker",
+                    ticker: sym,
+                    available: Object.keys(data)
+                });
+            }
+
+            // MVP: computed derived metrics
+            const out = computeDerived(bundle);
+            res.json(out);
+        } catch (e) {
+            console.error("✗ ERROR en earnings:", e.message);
+            res.status(500).json({ error: "Earnings error", detail: String(e?.message ?? e) });
+        }
+    });
 }
-
-
 
 module.exports = { registerEarningsRoutes };
