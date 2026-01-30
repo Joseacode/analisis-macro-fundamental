@@ -1,0 +1,33 @@
+{
+    "watchlist": [
+        "AAPL",
+        "MSFT",
+        "GOOGL"
+    ],
+    "favoriteSectors": [
+        "XLK",
+        "XLF",
+        "XLV"
+    ],
+    "notifications": {
+        "enabled": true,
+        "priceChangeThreshold": 5,
+        "scoreMinThreshold": 85,
+        "earningsReminder": true,
+        "macroAlerts": true
+    },
+    "scoring": {
+        "valueWeight": 25,
+        "qualityWeight": 35,
+        "growthWeight": 25,
+        "riskWeight": 15
+    },
+    "display": {
+        "decimals": 1,
+        "density": "normal",
+        "theme": "dark",
+        "showBenchmark": true
+    },
+    "dataRefreshInterval": 15,
+    "autoSaveDossier": true
+}

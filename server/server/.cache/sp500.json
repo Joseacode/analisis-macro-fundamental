@@ -1,0 +1,2333 @@
+{
+  "asOf": "2026-01-28",
+  "items": [
+    {
+      "symbol": "December 22, 2025",
+      "name": "CRH",
+      "gicsSector": "CRH",
+      "subIndustry": "LKQ"
+    },
+    {
+      "symbol": "December 22, 2025",
+      "name": "CVNA",
+      "gicsSector": "Carvana",
+      "subIndustry": "SOLS"
+    },
+    {
+      "symbol": "December 22, 2025",
+      "name": "FIX",
+      "gicsSector": "Comfort Systems USA",
+      "subIndustry": "MHK"
+    },
+    {
+      "symbol": "December 11, 2025",
+      "name": "ARES",
+      "gicsSector": "Ares Management",
+      "subIndustry": "K"
+    },
+    {
+      "symbol": "November 28, 2025",
+      "name": "SNDK",
+      "gicsSector": "Sandisk",
+      "subIndustry": "IPG"
+    },
+    {
+      "symbol": "November 4, 2025",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "EMN"
+    },
+    {
+      "symbol": "November 3, 2025",
+      "name": "Q",
+      "gicsSector": "Qnity Electronics",
+      "subIndustry": null
+    },
+    {
+      "symbol": "October 31, 2025",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "KMX"
+    },
+    {
+      "symbol": "October 30, 2025",
+      "name": "SOLS",
+      "gicsSector": "Solstice Advanced Materials",
+      "subIndustry": null
+    },
+    {
+      "symbol": "September 22, 2025",
+      "name": "EME",
+      "gicsSector": "Emcor",
+      "subIndustry": "ENPH"
+    },
+    {
+      "symbol": "September 22, 2025",
+      "name": "HOOD",
+      "gicsSector": "Robinhood Markets",
+      "subIndustry": "CZR"
+    },
+    {
+      "symbol": "September 22, 2025",
+      "name": "APP",
+      "gicsSector": "AppLovin",
+      "subIndustry": "MKTX"
+    },
+    {
+      "symbol": "August 28, 2025",
+      "name": "IBKR",
+      "gicsSector": "Interactive Brokers",
+      "subIndustry": "WBA"
+    },
+    {
+      "symbol": "July 23, 2025",
+      "name": "XYZ",
+      "gicsSector": "Block, Inc.",
+      "subIndustry": "HES"
+    },
+    {
+      "symbol": "July 18, 2025",
+      "name": "TTD",
+      "gicsSector": "Trade Desk (The)",
+      "subIndustry": "ANSS"
+    },
+    {
+      "symbol": "July 9, 2025",
+      "name": "DDOG",
+      "gicsSector": "Datadog",
+      "subIndustry": "JNPR"
+    },
+    {
+      "symbol": "May 19, 2025",
+      "name": "COIN",
+      "gicsSector": "Coinbase",
+      "subIndustry": "DFS"
+    },
+    {
+      "symbol": "March 24, 2025",
+      "name": "DASH",
+      "gicsSector": "DoorDash",
+      "subIndustry": "BWA"
+    },
+    {
+      "symbol": "March 24, 2025",
+      "name": "TKO",
+      "gicsSector": "TKO Group Holdings",
+      "subIndustry": "TFX"
+    },
+    {
+      "symbol": "March 24, 2025",
+      "name": "WSM",
+      "gicsSector": "Williams-Sonoma, Inc.",
+      "subIndustry": "CE"
+    },
+    {
+      "symbol": "March 24, 2025",
+      "name": "EXE",
+      "gicsSector": "Expand Energy",
+      "subIndustry": "FMC"
+    },
+    {
+      "symbol": "December 23, 2024",
+      "name": "APO",
+      "gicsSector": "Apollo Global Management",
+      "subIndustry": "QRVO"
+    },
+    {
+      "symbol": "December 23, 2024",
+      "name": "WDAY",
+      "gicsSector": "Workday, Inc.",
+      "subIndustry": "AMTM"
+    },
+    {
+      "symbol": "December 23, 2024",
+      "name": "LII",
+      "gicsSector": "Lennox International",
+      "subIndustry": "CTLT"
+    },
+    {
+      "symbol": "November 26, 2024",
+      "name": "TPL",
+      "gicsSector": "Texas Pacific Land Corporation",
+      "subIndustry": "MRO"
+    },
+    {
+      "symbol": "October 1, 2024",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "BBWI"
+    },
+    {
+      "symbol": "September 30, 2024",
+      "name": "AMTM",
+      "gicsSector": "Amentum",
+      "subIndustry": null
+    },
+    {
+      "symbol": "September 23, 2024",
+      "name": "PLTR",
+      "gicsSector": "Palantir Technologies",
+      "subIndustry": "AAL"
+    },
+    {
+      "symbol": "September 23, 2024",
+      "name": "DELL",
+      "gicsSector": "Dell Technologies",
+      "subIndustry": "ETSY"
+    },
+    {
+      "symbol": "September 23, 2024",
+      "name": "ERIE",
+      "gicsSector": "Erie Indemnity",
+      "subIndustry": "BIO"
+    },
+    {
+      "symbol": "June 24, 2024",
+      "name": "KKR",
+      "gicsSector": "KKR",
+      "subIndustry": "RHI"
+    },
+    {
+      "symbol": "June 24, 2024",
+      "name": "CRWD",
+      "gicsSector": "CrowdStrike",
+      "subIndustry": "CMA"
+    },
+    {
+      "symbol": "June 24, 2024",
+      "name": "GDDY",
+      "gicsSector": "GoDaddy",
+      "subIndustry": "ILMN"
+    },
+    {
+      "symbol": "May 8, 2024",
+      "name": "VST",
+      "gicsSector": "Vistra",
+      "subIndustry": "PXD"
+    },
+    {
+      "symbol": "April 3, 2024",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "XRAY"
+    },
+    {
+      "symbol": "April 3, 2024",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "VFC"
+    },
+    {
+      "symbol": "April 2, 2024",
+      "name": "GEV",
+      "gicsSector": "GE Vernova",
+      "subIndustry": null
+    },
+    {
+      "symbol": "April 1, 2024",
+      "name": "SOLV",
+      "gicsSector": "Solventum",
+      "subIndustry": null
+    },
+    {
+      "symbol": "March 18, 2024",
+      "name": "SMCI",
+      "gicsSector": "Supermicro",
+      "subIndustry": "WHR"
+    },
+    {
+      "symbol": "March 18, 2024",
+      "name": "DECK",
+      "gicsSector": "Deckers Brands",
+      "subIndustry": "ZION"
+    },
+    {
+      "symbol": "December 18, 2023",
+      "name": "UBER",
+      "gicsSector": "Uber",
+      "subIndustry": "SEE"
+    },
+    {
+      "symbol": "December 18, 2023",
+      "name": "JBL",
+      "gicsSector": "Jabil",
+      "subIndustry": "ALK"
+    },
+    {
+      "symbol": "December 18, 2023",
+      "name": "BLDR",
+      "gicsSector": "Builders FirstSource",
+      "subIndustry": "SEDG"
+    },
+    {
+      "symbol": "October 18, 2023",
+      "name": "HUBB",
+      "gicsSector": "Hubbell",
+      "subIndustry": "OGN"
+    },
+    {
+      "symbol": "October 18, 2023",
+      "name": "LULU",
+      "gicsSector": "Lululemon Athletica",
+      "subIndustry": "ATVI"
+    },
+    {
+      "symbol": "October 3, 2023",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "DXC"
+    },
+    {
+      "symbol": "October 2, 2023",
+      "name": "VLTO",
+      "gicsSector": "Veralto",
+      "subIndustry": null
+    },
+    {
+      "symbol": "September 18, 2023",
+      "name": "BX",
+      "gicsSector": "Blackstone",
+      "subIndustry": "LNC"
+    },
+    {
+      "symbol": "September 18, 2023",
+      "name": "ABNB",
+      "gicsSector": "Airbnb",
+      "subIndustry": "NWL"
+    },
+    {
+      "symbol": "August 25, 2023",
+      "name": "KVUE",
+      "gicsSector": "Kenvue",
+      "subIndustry": "AAP"
+    },
+    {
+      "symbol": "June 20, 2023",
+      "name": "PANW",
+      "gicsSector": "Palo Alto Networks",
+      "subIndustry": "DISH"
+    },
+    {
+      "symbol": "May 4, 2023",
+      "name": "AXON",
+      "gicsSector": "Axon Enterprise",
+      "subIndustry": "FRC"
+    },
+    {
+      "symbol": "March 20, 2023",
+      "name": "FICO",
+      "gicsSector": "Fair Isaac",
+      "subIndustry": "LUMN"
+    },
+    {
+      "symbol": "March 15, 2023",
+      "name": "BG",
+      "gicsSector": "Bunge Global",
+      "subIndustry": "SBNY"
+    },
+    {
+      "symbol": "March 15, 2023",
+      "name": "PODD",
+      "gicsSector": "Insulet",
+      "subIndustry": "SIVB"
+    },
+    {
+      "symbol": "January 5, 2023",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "VNO"
+    },
+    {
+      "symbol": "January 4, 2023",
+      "name": "GEHC",
+      "gicsSector": "GE HealthCare",
+      "subIndustry": null
+    },
+    {
+      "symbol": "December 22, 2022",
+      "name": "STLD",
+      "gicsSector": "Steel Dynamics",
+      "subIndustry": "ABMD"
+    },
+    {
+      "symbol": "December 19, 2022",
+      "name": "FSLR",
+      "gicsSector": "First Solar",
+      "subIndustry": "FBHS"
+    },
+    {
+      "symbol": "December 19, 2022",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "MBC"
+    },
+    {
+      "symbol": "December 15, 2022",
+      "name": "MBC",
+      "gicsSector": "MasterBrand",
+      "subIndustry": null
+    },
+    {
+      "symbol": "November 1, 2022",
+      "name": "ACGL",
+      "gicsSector": "Arch Capital Group",
+      "subIndustry": "TWTR"
+    },
+    {
+      "symbol": "October 12, 2022",
+      "name": "TRGP",
+      "gicsSector": "Targa Resources",
+      "subIndustry": "NLSN"
+    },
+    {
+      "symbol": "October 3, 2022",
+      "name": "PCG",
+      "gicsSector": "PG&E",
+      "subIndustry": "CTXS"
+    },
+    {
+      "symbol": "October 3, 2022",
+      "name": "EQT",
+      "gicsSector": "EQT Corporation",
+      "subIndustry": "DRE"
+    },
+    {
+      "symbol": "September 19, 2022",
+      "name": "CSGP",
+      "gicsSector": "CoStar Group",
+      "subIndustry": "PVH"
+    },
+    {
+      "symbol": "September 19, 2022",
+      "name": "INVH",
+      "gicsSector": "Invitation Homes",
+      "subIndustry": "PENN"
+    },
+    {
+      "symbol": "June 21, 2022",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "UA"
+    },
+    {
+      "symbol": "June 21, 2022",
+      "name": "KDP",
+      "gicsSector": "Keurig Dr Pepper",
+      "subIndustry": "UAA"
+    },
+    {
+      "symbol": "June 21, 2022",
+      "name": "ON",
+      "gicsSector": "ON Semiconductor",
+      "subIndustry": "IPGP"
+    },
+    {
+      "symbol": "June 8, 2022",
+      "name": "VICI",
+      "gicsSector": "Vici Properties",
+      "subIndustry": "CERN"
+    },
+    {
+      "symbol": "April 11, 2022",
+      "name": "WBD",
+      "gicsSector": "Warner Bros. Discovery",
+      "subIndustry": "DISCA"
+    },
+    {
+      "symbol": "April 11, 2022",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "DISCK"
+    },
+    {
+      "symbol": "April 4, 2022",
+      "name": "CPT",
+      "gicsSector": "Camden Property Trust",
+      "subIndustry": "PBCT"
+    },
+    {
+      "symbol": "March 2, 2022",
+      "name": "MOH",
+      "gicsSector": "Molina Healthcare",
+      "subIndustry": "INFO"
+    },
+    {
+      "symbol": "February 15, 2022",
+      "name": "NDSN",
+      "gicsSector": "Nordson Corporation",
+      "subIndustry": "XLNX"
+    },
+    {
+      "symbol": "February 3, 2022",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "GPS"
+    },
+    {
+      "symbol": "February 2, 2022",
+      "name": "CEG",
+      "gicsSector": "Constellation Energy",
+      "subIndustry": null
+    },
+    {
+      "symbol": "December 20, 2021",
+      "name": "SBNY",
+      "gicsSector": "Signature Bank",
+      "subIndustry": "LEG"
+    },
+    {
+      "symbol": "December 20, 2021",
+      "name": "SEDG",
+      "gicsSector": "SolarEdge",
+      "subIndustry": "HBI"
+    },
+    {
+      "symbol": "December 20, 2021",
+      "name": "FDS",
+      "gicsSector": "FactSet",
+      "subIndustry": "WU"
+    },
+    {
+      "symbol": "December 14, 2021",
+      "name": "EPAM",
+      "gicsSector": "EPAM Systems",
+      "subIndustry": "KSU"
+    },
+    {
+      "symbol": "September 20, 2021",
+      "name": "MTCH",
+      "gicsSector": "Match Group",
+      "subIndustry": "PRGO"
+    },
+    {
+      "symbol": "September 20, 2021",
+      "name": "CDAY",
+      "gicsSector": "Ceridian",
+      "subIndustry": "UNM"
+    },
+    {
+      "symbol": "September 20, 2021",
+      "name": "BRO",
+      "gicsSector": "Brown & Brown",
+      "subIndustry": "NOV"
+    },
+    {
+      "symbol": "August 30, 2021",
+      "name": "TECH",
+      "gicsSector": "Bio-Techne",
+      "subIndustry": "MXIM"
+    },
+    {
+      "symbol": "July 21, 2021",
+      "name": "MRNA",
+      "gicsSector": "Moderna",
+      "subIndustry": "ALXN"
+    },
+    {
+      "symbol": "June 4, 2021",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "HFC"
+    },
+    {
+      "symbol": "June 3, 2021",
+      "name": "OGN",
+      "gicsSector": "Organon & Co.",
+      "subIndustry": null
+    },
+    {
+      "symbol": "May 14, 2021",
+      "name": "CRL",
+      "gicsSector": "Charles River Laboratories",
+      "subIndustry": "FLIR"
+    },
+    {
+      "symbol": "April 20, 2021",
+      "name": "PTC",
+      "gicsSector": "PTC",
+      "subIndustry": "VAR"
+    },
+    {
+      "symbol": "March 22, 2021",
+      "name": "NXPI",
+      "gicsSector": "NXP",
+      "subIndustry": "FLS"
+    },
+    {
+      "symbol": "March 22, 2021",
+      "name": "PENN",
+      "gicsSector": "Penn National Gaming",
+      "subIndustry": "SLG"
+    },
+    {
+      "symbol": "March 22, 2021",
+      "name": "GNRC",
+      "gicsSector": "Generac Holdings",
+      "subIndustry": "XRX"
+    },
+    {
+      "symbol": "March 22, 2021",
+      "name": "CZR",
+      "gicsSector": "Caesars Entertainment",
+      "subIndustry": "VNT"
+    },
+    {
+      "symbol": "February 12, 2021",
+      "name": "MPWR",
+      "gicsSector": "Monolithic Power Systems",
+      "subIndustry": "FTI"
+    },
+    {
+      "symbol": "January 21, 2021",
+      "name": "TRMB",
+      "gicsSector": "Trimble",
+      "subIndustry": "CXO"
+    },
+    {
+      "symbol": "January 7, 2021",
+      "name": "ENPH",
+      "gicsSector": "Enphase Energy",
+      "subIndustry": "TIF"
+    },
+    {
+      "symbol": "December 21, 2020",
+      "name": "TSLA",
+      "gicsSector": "Tesla",
+      "subIndustry": "AIV"
+    },
+    {
+      "symbol": "October 12, 2020",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "NBL"
+    },
+    {
+      "symbol": "October 9, 2020",
+      "name": "VNT",
+      "gicsSector": "Vontier",
+      "subIndustry": null
+    },
+    {
+      "symbol": "October 7, 2020",
+      "name": "POOL",
+      "gicsSector": "Pool Corporation",
+      "subIndustry": "ETFC"
+    },
+    {
+      "symbol": "September 21, 2020",
+      "name": "ETSY",
+      "gicsSector": "Etsy",
+      "subIndustry": "HRB"
+    },
+    {
+      "symbol": "September 21, 2020",
+      "name": "TER",
+      "gicsSector": "Teradyne",
+      "subIndustry": "COTY"
+    },
+    {
+      "symbol": "September 21, 2020",
+      "name": "CTLT",
+      "gicsSector": "Catalent",
+      "subIndustry": "KSS"
+    },
+    {
+      "symbol": "June 22, 2020",
+      "name": "BIO",
+      "gicsSector": "Bio-Rad Laboratories",
+      "subIndustry": "ADS"
+    },
+    {
+      "symbol": "June 22, 2020",
+      "name": "TDY",
+      "gicsSector": "Teledyne",
+      "subIndustry": "HOG"
+    },
+    {
+      "symbol": "June 22, 2020",
+      "name": "TYL",
+      "gicsSector": "Tyler Technologies",
+      "subIndustry": "JWN"
+    },
+    {
+      "symbol": "May 22, 2020",
+      "name": "WST",
+      "gicsSector": "West Pharmaceutical Services",
+      "subIndustry": "HP"
+    },
+    {
+      "symbol": "May 12, 2020",
+      "name": "DPZ",
+      "gicsSector": "Domino's Pizza",
+      "subIndustry": "CPRI"
+    },
+    {
+      "symbol": "May 12, 2020",
+      "name": "DXCM",
+      "gicsSector": "Dexcom",
+      "subIndustry": "AGN"
+    },
+    {
+      "symbol": "April 6, 2020",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "M"
+    },
+    {
+      "symbol": "April 6, 2020",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "RTN"
+    },
+    {
+      "symbol": "April 3, 2020",
+      "name": "OTIS",
+      "gicsSector": "Otis Worldwide",
+      "subIndustry": null
+    },
+    {
+      "symbol": "April 3, 2020",
+      "name": "CARR",
+      "gicsSector": "Carrier",
+      "subIndustry": null
+    },
+    {
+      "symbol": "April 1, 2020",
+      "name": "HWM",
+      "gicsSector": "Howmet Aerospace",
+      "subIndustry": "ARNC"
+    },
+    {
+      "symbol": "March 2, 2020",
+      "name": "IR",
+      "gicsSector": "Ingersoll Rand",
+      "subIndustry": "XEC"
+    },
+    {
+      "symbol": "January 28, 2020",
+      "name": "PAYC",
+      "gicsSector": "Paycom",
+      "subIndustry": "WCG"
+    },
+    {
+      "symbol": "December 23, 2019",
+      "name": "LYV",
+      "gicsSector": "Live Nation Entertainment",
+      "subIndustry": "AMG"
+    },
+    {
+      "symbol": "December 23, 2019",
+      "name": "ZBRA",
+      "gicsSector": "Zebra Technologies",
+      "subIndustry": "TRIP"
+    },
+    {
+      "symbol": "December 23, 2019",
+      "name": "STE",
+      "gicsSector": "Steris",
+      "subIndustry": "MAC"
+    },
+    {
+      "symbol": "December 9, 2019",
+      "name": "ODFL",
+      "gicsSector": "Old Dominion Freight Line",
+      "subIndustry": "STI"
+    },
+    {
+      "symbol": "December 5, 2019",
+      "name": "WRB",
+      "gicsSector": "W. R. Berkley Corporation",
+      "subIndustry": "VIAB"
+    },
+    {
+      "symbol": "November 21, 2019",
+      "name": "NOW",
+      "gicsSector": "ServiceNow",
+      "subIndustry": "CELG"
+    },
+    {
+      "symbol": "October 3, 2019",
+      "name": "LVS",
+      "gicsSector": "Las Vegas Sands",
+      "subIndustry": "NKTR"
+    },
+    {
+      "symbol": "September 26, 2019",
+      "name": "NVR",
+      "gicsSector": "NVR",
+      "subIndustry": "JEF"
+    },
+    {
+      "symbol": "September 23, 2019",
+      "name": "CDW",
+      "gicsSector": "CDW Corporation",
+      "subIndustry": "TSS"
+    },
+    {
+      "symbol": "August 9, 2019",
+      "name": "LDOS",
+      "gicsSector": "Leidos",
+      "subIndustry": "APC"
+    },
+    {
+      "symbol": "August 9, 2019",
+      "name": "IEX",
+      "gicsSector": "IDEX Corporation",
+      "subIndustry": "FL"
+    },
+    {
+      "symbol": "July 15, 2019",
+      "name": "TMUS",
+      "gicsSector": "T-Mobile US",
+      "subIndustry": "RHT"
+    },
+    {
+      "symbol": "July 1, 2019",
+      "name": "MKTX",
+      "gicsSector": "MarketAxess",
+      "subIndustry": "LLL"
+    },
+    {
+      "symbol": "June 11, 2019",
+      "name": "AMCR",
+      "gicsSector": "Amcor",
+      "subIndustry": "BMS"
+    },
+    {
+      "symbol": "June 7, 2019",
+      "name": "BMS",
+      "gicsSector": "Bemis",
+      "subIndustry": "MAT"
+    },
+    {
+      "symbol": "June 3, 2019",
+      "name": "DD",
+      "gicsSector": "DuPont",
+      "subIndustry": "DWDP"
+    },
+    {
+      "symbol": "June 3, 2019",
+      "name": "CTVA",
+      "gicsSector": "Corteva",
+      "subIndustry": "FLR"
+    },
+    {
+      "symbol": "April 2, 2019",
+      "name": "DOW",
+      "gicsSector": "Dow",
+      "subIndustry": "BHF"
+    },
+    {
+      "symbol": "March 19, 2019",
+      "name": "FOXA",
+      "gicsSector": "Fox Corporation",
+      "subIndustry": "FOXA"
+    },
+    {
+      "symbol": "March 19, 2019",
+      "name": "FOX",
+      "gicsSector": "Fox Corporation",
+      "subIndustry": "FOX"
+    },
+    {
+      "symbol": "February 27, 2019",
+      "name": "WAB",
+      "gicsSector": "Wabtec",
+      "subIndustry": "GT"
+    },
+    {
+      "symbol": "February 15, 2019",
+      "name": "ATO",
+      "gicsSector": "Atmos Energy",
+      "subIndustry": "NFX"
+    },
+    {
+      "symbol": "January 18, 2019",
+      "name": "TFX",
+      "gicsSector": "Teleflex",
+      "subIndustry": "PCG"
+    },
+    {
+      "symbol": "January 2, 2019",
+      "name": "FRC",
+      "gicsSector": "First Republic Bank",
+      "subIndustry": "SCG"
+    },
+    {
+      "symbol": "December 24, 2018",
+      "name": "CE",
+      "gicsSector": "Celanese",
+      "subIndustry": "ESRX"
+    },
+    {
+      "symbol": "December 3, 2018",
+      "name": "LW",
+      "gicsSector": "Lamb Weston",
+      "subIndustry": "COL"
+    },
+    {
+      "symbol": "December 3, 2018",
+      "name": "MXIM",
+      "gicsSector": "Maxim Integrated",
+      "subIndustry": "AET"
+    },
+    {
+      "symbol": "December 3, 2018",
+      "name": "FANG",
+      "gicsSector": "Diamondback Energy",
+      "subIndustry": "SRCL"
+    },
+    {
+      "symbol": "November 13, 2018",
+      "name": "JKHY",
+      "gicsSector": "Jack Henry & Associates",
+      "subIndustry": "EQT"
+    },
+    {
+      "symbol": "November 6, 2018",
+      "name": "KEYS",
+      "gicsSector": "Keysight",
+      "subIndustry": "CA"
+    },
+    {
+      "symbol": "October 11, 2018",
+      "name": "FTNT",
+      "gicsSector": "Fortinet",
+      "subIndustry": "EVHC"
+    },
+    {
+      "symbol": "October 1, 2018",
+      "name": "ROL",
+      "gicsSector": "Rollins",
+      "subIndustry": "ANDV"
+    },
+    {
+      "symbol": "September 14, 2018",
+      "name": "WCG",
+      "gicsSector": "WellCare",
+      "subIndustry": "XL"
+    },
+    {
+      "symbol": "August 28, 2018",
+      "name": "ANET",
+      "gicsSector": "Arista Networks",
+      "subIndustry": "GGP"
+    },
+    {
+      "symbol": "July 2, 2018",
+      "name": "CPRT",
+      "gicsSector": "Copart",
+      "subIndustry": "DPS"
+    },
+    {
+      "symbol": "June 20, 2018",
+      "name": "FLT",
+      "gicsSector": "FleetCor Technologies",
+      "subIndustry": "TWX"
+    },
+    {
+      "symbol": "June 18, 2018",
+      "name": "BR",
+      "gicsSector": "Broadridge Financial Solutions",
+      "subIndustry": "RRC"
+    },
+    {
+      "symbol": "June 18, 2018",
+      "name": "HFC",
+      "gicsSector": "HollyFrontier",
+      "subIndustry": "AYI"
+    },
+    {
+      "symbol": "June 7, 2018",
+      "name": "TWTR",
+      "gicsSector": "Twitter",
+      "subIndustry": "MON"
+    },
+    {
+      "symbol": "June 5, 2018",
+      "name": "EVRG",
+      "gicsSector": "Evergy",
+      "subIndustry": "NAVI"
+    },
+    {
+      "symbol": "May 31, 2018",
+      "name": "ABMD",
+      "gicsSector": "Abiomed",
+      "subIndustry": "WYN"
+    },
+    {
+      "symbol": "April 4, 2018",
+      "name": "MSCI",
+      "gicsSector": "MSCI",
+      "subIndustry": "CSRA"
+    },
+    {
+      "symbol": "March 19, 2018",
+      "name": "TTWO",
+      "gicsSector": "Take-Two Interactive",
+      "subIndustry": "SIG"
+    },
+    {
+      "symbol": "March 19, 2018",
+      "name": "SIVB",
+      "gicsSector": "SVB Financial Group",
+      "subIndustry": "PDCO"
+    },
+    {
+      "symbol": "March 19, 2018",
+      "name": "NKTR",
+      "gicsSector": "Nektar Therapeutics",
+      "subIndustry": "CHK"
+    },
+    {
+      "symbol": "March 7, 2018",
+      "name": "IPGP",
+      "gicsSector": "IPG Photonics",
+      "subIndustry": "SNI"
+    },
+    {
+      "symbol": "January 3, 2018",
+      "name": "HII",
+      "gicsSector": "Huntington Ingalls Industries",
+      "subIndustry": "BCR"
+    },
+    {
+      "symbol": "October 13, 2017",
+      "name": "NCLH",
+      "gicsSector": "Norwegian Cruise Line Holdings",
+      "subIndustry": "LVLT"
+    },
+    {
+      "symbol": "September 18, 2017",
+      "name": "CDNS",
+      "gicsSector": "Cadence Design Systems",
+      "subIndustry": "SPLS"
+    },
+    {
+      "symbol": "September 1, 2017",
+      "name": "DWDP",
+      "gicsSector": "DuPont",
+      "subIndustry": "DOW"
+    },
+    {
+      "symbol": "September 1, 2017",
+      "name": "SBAC",
+      "gicsSector": "SBA Communications",
+      "subIndustry": "DD"
+    },
+    {
+      "symbol": "August 29, 2017",
+      "name": "Q",
+      "gicsSector": "QuintilesIMS",
+      "subIndustry": "WFM"
+    },
+    {
+      "symbol": "August 8, 2017",
+      "name": "BHF",
+      "gicsSector": "Brighthouse Financial",
+      "subIndustry": "AN"
+    },
+    {
+      "symbol": "July 26, 2017",
+      "name": "DRE",
+      "gicsSector": "Duke Realty Corp",
+      "subIndustry": "RIG"
+    },
+    {
+      "symbol": "July 26, 2017",
+      "name": "AOS",
+      "gicsSector": "A. O. Smith",
+      "subIndustry": "BBBY"
+    },
+    {
+      "symbol": "July 26, 2017",
+      "name": "PKG",
+      "gicsSector": "Packaging Corporation of America",
+      "subIndustry": "MUR"
+    },
+    {
+      "symbol": "July 26, 2017",
+      "name": "RMD",
+      "gicsSector": "ResMed",
+      "subIndustry": "MNK"
+    },
+    {
+      "symbol": "July 26, 2017",
+      "name": "MGM",
+      "gicsSector": "MGM Resorts International",
+      "subIndustry": "RAI"
+    },
+    {
+      "symbol": "July 7, 2017",
+      "name": "BKR",
+      "gicsSector": "Baker Hughes",
+      "subIndustry": "BHI"
+    },
+    {
+      "symbol": "June 19, 2017",
+      "name": "HLT",
+      "gicsSector": "Hilton",
+      "subIndustry": "YHOO"
+    },
+    {
+      "symbol": "June 19, 2017",
+      "name": "ALGN",
+      "gicsSector": "Align Technology",
+      "subIndustry": "TDC"
+    },
+    {
+      "symbol": "June 19, 2017",
+      "name": "ANSS",
+      "gicsSector": "Ansys",
+      "subIndustry": "R"
+    },
+    {
+      "symbol": "June 19, 2017",
+      "name": "RE",
+      "gicsSector": "Everest Re",
+      "subIndustry": "MJN"
+    },
+    {
+      "symbol": "June 2, 2017",
+      "name": "INFO",
+      "gicsSector": "IHS Markit",
+      "subIndustry": "TGNA"
+    },
+    {
+      "symbol": "April 5, 2017",
+      "name": "IT",
+      "gicsSector": "Gartner",
+      "subIndustry": "DNB"
+    },
+    {
+      "symbol": "April 4, 2017",
+      "name": "DXC",
+      "gicsSector": "DXC Technology",
+      "subIndustry": "SWN"
+    },
+    {
+      "symbol": "March 20, 2017",
+      "name": "AMD",
+      "gicsSector": "Advanced Micro Devices",
+      "subIndustry": "URBN"
+    },
+    {
+      "symbol": "March 20, 2017",
+      "name": "RJF",
+      "gicsSector": "Raymond James Financial",
+      "subIndustry": "FTR"
+    },
+    {
+      "symbol": "March 20, 2017",
+      "name": "ARE",
+      "gicsSector": "Alexandria Real Estate Equities",
+      "subIndustry": "FSLR"
+    },
+    {
+      "symbol": "March 16, 2017",
+      "name": "SNPS",
+      "gicsSector": "Synopsys",
+      "subIndustry": "HAR"
+    },
+    {
+      "symbol": "March 13, 2017",
+      "name": "DISH",
+      "gicsSector": "Dish Network",
+      "subIndustry": "LLTC"
+    },
+    {
+      "symbol": "March 2, 2017",
+      "name": "REG",
+      "gicsSector": "Regency Centers",
+      "subIndustry": "ENDP"
+    },
+    {
+      "symbol": "March 1, 2017",
+      "name": "CBOE",
+      "gicsSector": "Cboe Holdings",
+      "subIndustry": "PBI"
+    },
+    {
+      "symbol": "February 28, 2017",
+      "name": "INCY",
+      "gicsSector": "Incyte",
+      "subIndustry": "SE"
+    },
+    {
+      "symbol": "January 5, 2017",
+      "name": "IDXX",
+      "gicsSector": "Idexx Laboratories",
+      "subIndustry": "STJ"
+    },
+    {
+      "symbol": "December 2, 2016",
+      "name": "MAA",
+      "gicsSector": "Mid-America Apartments",
+      "subIndustry": "OI"
+    },
+    {
+      "symbol": "December 2, 2016",
+      "name": "EVHC",
+      "gicsSector": "Envision Healthcare",
+      "subIndustry": "LM"
+    },
+    {
+      "symbol": "November 1, 2016",
+      "name": "ARNC",
+      "gicsSector": "Arconic",
+      "subIndustry": "AA"
+    },
+    {
+      "symbol": "September 30, 2016",
+      "name": "COTY",
+      "gicsSector": "Coty",
+      "subIndustry": "DO"
+    },
+    {
+      "symbol": "September 22, 2016",
+      "name": "COO",
+      "gicsSector": "The Cooper Companies",
+      "subIndustry": "HOT"
+    },
+    {
+      "symbol": "September 8, 2016",
+      "name": "CHTR",
+      "gicsSector": "Charter Communications",
+      "subIndustry": "EMC"
+    },
+    {
+      "symbol": "September 6, 2016",
+      "name": "MTD",
+      "gicsSector": "Mettler Toledo",
+      "subIndustry": "TYC"
+    },
+    {
+      "symbol": "July 5, 2016",
+      "name": "FTV",
+      "gicsSector": "Fortive Corp",
+      "subIndustry": "CPGX"
+    },
+    {
+      "symbol": "July 1, 2016",
+      "name": "LNT",
+      "gicsSector": "Alliant Energy Corp",
+      "subIndustry": "GAS"
+    },
+    {
+      "symbol": "July 1, 2016",
+      "name": "ALB",
+      "gicsSector": "Albemarle Corporation",
+      "subIndustry": "TE"
+    },
+    {
+      "symbol": "June 22, 2016",
+      "name": "FBHS",
+      "gicsSector": "Fortune Brands Home & Security",
+      "subIndustry": "CVC"
+    },
+    {
+      "symbol": "June 3, 2016",
+      "name": "TDG",
+      "gicsSector": "TransDigm Group",
+      "subIndustry": "BXLT"
+    },
+    {
+      "symbol": "May 31, 2016",
+      "name": "AJG",
+      "gicsSector": "Arthur J. Gallagher & Co.",
+      "subIndustry": "CCE"
+    },
+    {
+      "symbol": "May 23, 2016",
+      "name": "LKQ",
+      "gicsSector": "LKQ Corporation",
+      "subIndustry": "ARG"
+    },
+    {
+      "symbol": "May 18, 2016",
+      "name": "DLR",
+      "gicsSector": "Digital Realty",
+      "subIndustry": "TWC"
+    },
+    {
+      "symbol": "May 13, 2016",
+      "name": "ALK",
+      "gicsSector": "Alaska Air Group",
+      "subIndustry": "SNDK"
+    },
+    {
+      "symbol": "May 3, 2016",
+      "name": "AYI",
+      "gicsSector": "Acuity Brands",
+      "subIndustry": "ADT"
+    },
+    {
+      "symbol": "April 25, 2016",
+      "name": "GPN",
+      "gicsSector": "Global Payments",
+      "subIndustry": "GME"
+    },
+    {
+      "symbol": "April 18, 2016",
+      "name": "ULTA",
+      "gicsSector": "Ulta Beauty",
+      "subIndustry": "THC"
+    },
+    {
+      "symbol": "April 8, 2016",
+      "name": "UA",
+      "gicsSector": "Under Armour (Class C)",
+      "subIndustry": null
+    },
+    {
+      "symbol": "April 4, 2016",
+      "name": "FL",
+      "gicsSector": "Foot Locker",
+      "subIndustry": "CAM"
+    },
+    {
+      "symbol": "March 30, 2016",
+      "name": "HOLX",
+      "gicsSector": "Hologic",
+      "subIndustry": "POM"
+    },
+    {
+      "symbol": "March 30, 2016",
+      "name": "CNC",
+      "gicsSector": "Centene Corporation",
+      "subIndustry": "ESV"
+    },
+    {
+      "symbol": "March 7, 2016",
+      "name": "UDR",
+      "gicsSector": "UDR",
+      "subIndustry": "GMCR"
+    },
+    {
+      "symbol": "March 4, 2016",
+      "name": "AWK",
+      "gicsSector": "American Water Works",
+      "subIndustry": "CNX"
+    },
+    {
+      "symbol": "February 22, 2016",
+      "name": "CXO",
+      "gicsSector": "Concho Resources",
+      "subIndustry": "PCL"
+    },
+    {
+      "symbol": "February 1, 2016",
+      "name": "CFG",
+      "gicsSector": "Citizens",
+      "subIndustry": "PCP"
+    },
+    {
+      "symbol": "February 1, 2016",
+      "name": "FRT",
+      "gicsSector": "Federal Realty Investment Trust",
+      "subIndustry": "BRCM"
+    },
+    {
+      "symbol": "January 19, 2016",
+      "name": "EXR",
+      "gicsSector": "Extra Space Storage",
+      "subIndustry": "ACE"
+    },
+    {
+      "symbol": "January 5, 2016",
+      "name": "WLTW",
+      "gicsSector": "Willis Towers Watson",
+      "subIndustry": "FOSL"
+    },
+    {
+      "symbol": "December 29, 2015",
+      "name": "CHD",
+      "gicsSector": "Church & Dwight",
+      "subIndustry": "ALTR"
+    },
+    {
+      "symbol": "December 15, 2015",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "CMCSK"
+    },
+    {
+      "symbol": "December 1, 2015",
+      "name": "CSRA",
+      "gicsSector": "CSRA",
+      "subIndustry": "CSC"
+    },
+    {
+      "symbol": "November 19, 2015",
+      "name": "ILMN",
+      "gicsSector": "Illumina",
+      "subIndustry": "SIAL"
+    },
+    {
+      "symbol": "November 18, 2015",
+      "name": "SYF",
+      "gicsSector": "Synchrony Financial",
+      "subIndustry": "GNW"
+    },
+    {
+      "symbol": "November 2, 2015",
+      "name": "HPE",
+      "gicsSector": "Hewlett Packard Enterprise",
+      "subIndustry": "HCBK"
+    },
+    {
+      "symbol": "October 7, 2015",
+      "name": "VRSK",
+      "gicsSector": "Verisk Analytics",
+      "subIndustry": "JOY"
+    },
+    {
+      "symbol": "September 18, 2015",
+      "name": "CMCSK",
+      "gicsSector": "Comcast Class K Special",
+      "subIndustry": null
+    },
+    {
+      "symbol": "September 18, 2015",
+      "name": "FOX",
+      "gicsSector": "Twenty-First Century Fox Class B",
+      "subIndustry": null
+    },
+    {
+      "symbol": "September 18, 2015",
+      "name": "NWS",
+      "gicsSector": "News Corporation Class B",
+      "subIndustry": null
+    },
+    {
+      "symbol": "September 2, 2015",
+      "name": "UAL",
+      "gicsSector": "United Continental Holdings",
+      "subIndustry": "HSP"
+    },
+    {
+      "symbol": "August 28, 2015",
+      "name": "ATVI",
+      "gicsSector": "Activision Blizzard",
+      "subIndustry": "PLL"
+    },
+    {
+      "symbol": "July 29, 2015",
+      "name": "SIG",
+      "gicsSector": "Signet Jewelers",
+      "subIndustry": "DTV"
+    },
+    {
+      "symbol": "July 20, 2015",
+      "name": "PYPL",
+      "gicsSector": "PayPal",
+      "subIndustry": "NE"
+    },
+    {
+      "symbol": "July 8, 2015",
+      "name": "AAP",
+      "gicsSector": "Advance Auto Parts",
+      "subIndustry": "FDO"
+    },
+    {
+      "symbol": "July 6, 2015",
+      "name": "KHC",
+      "gicsSector": "Kraft Heinz",
+      "subIndustry": "KRFT"
+    },
+    {
+      "symbol": "July 2, 2015",
+      "name": "CPGX",
+      "gicsSector": "Columbia Pipeline Group",
+      "subIndustry": "ATI"
+    },
+    {
+      "symbol": "July 1, 2015",
+      "name": "JBHT",
+      "gicsSector": "J.B. Hunt",
+      "subIndustry": "TEG"
+    },
+    {
+      "symbol": "July 1, 2015",
+      "name": "BXLT",
+      "gicsSector": "Baxalta",
+      "subIndustry": "QEP"
+    },
+    {
+      "symbol": "June 11, 2015",
+      "name": "QRVO",
+      "gicsSector": "Qorvo",
+      "subIndustry": "LO"
+    },
+    {
+      "symbol": "April 7, 2015",
+      "name": "O",
+      "gicsSector": "Realty Income Corporation",
+      "subIndustry": "WIN"
+    },
+    {
+      "symbol": "March 23, 2015",
+      "name": "AAL",
+      "gicsSector": "American Airlines Group",
+      "subIndustry": "AGN"
+    },
+    {
+      "symbol": "March 23, 2015",
+      "name": "EQIX",
+      "gicsSector": "Equinix",
+      "subIndustry": "DNR"
+    },
+    {
+      "symbol": "March 23, 2015",
+      "name": "SLG",
+      "gicsSector": "SL Green Realty",
+      "subIndustry": "NBR"
+    },
+    {
+      "symbol": "March 23, 2015",
+      "name": "HBI",
+      "gicsSector": "Hanesbrands",
+      "subIndustry": "AVP"
+    },
+    {
+      "symbol": "March 18, 2015",
+      "name": "HSIC",
+      "gicsSector": "Henry Schein",
+      "subIndustry": "CFN"
+    },
+    {
+      "symbol": "March 12, 2015",
+      "name": "SWKS",
+      "gicsSector": "Skyworks",
+      "subIndustry": "PETM"
+    },
+    {
+      "symbol": "January 27, 2015",
+      "name": "HCA",
+      "gicsSector": "HCA Holdings",
+      "subIndustry": "SWY"
+    },
+    {
+      "symbol": "January 27, 2015",
+      "name": "ENDP",
+      "gicsSector": "Endo International",
+      "subIndustry": "COV"
+    },
+    {
+      "symbol": "December 5, 2014",
+      "name": "RCL",
+      "gicsSector": "Royal Caribbean Cruises",
+      "subIndustry": "BMS"
+    },
+    {
+      "symbol": "November 5, 2014",
+      "name": "LVLT",
+      "gicsSector": "Level 3 Communications",
+      "subIndustry": "JBL"
+    },
+    {
+      "symbol": "September 20, 2014",
+      "name": "URI",
+      "gicsSector": "United Rentals",
+      "subIndustry": "BTU"
+    },
+    {
+      "symbol": "September 20, 2014",
+      "name": "UHS",
+      "gicsSector": "Universal Health Services",
+      "subIndustry": "GHC"
+    },
+    {
+      "symbol": "August 18, 2014",
+      "name": "MNK",
+      "gicsSector": "Mallinckrodt",
+      "subIndustry": "RDC"
+    },
+    {
+      "symbol": "August 6, 2014",
+      "name": "DISCK",
+      "gicsSector": "Discovery Communications",
+      "subIndustry": null
+    },
+    {
+      "symbol": "July 2, 2014",
+      "name": "MLM",
+      "gicsSector": "Martin Marietta",
+      "subIndustry": "X"
+    },
+    {
+      "symbol": "July 1, 2014",
+      "name": "AMG",
+      "gicsSector": "Affiliated Managers Group",
+      "subIndustry": "FRX"
+    },
+    {
+      "symbol": "June 20, 2014",
+      "name": "XEC",
+      "gicsSector": "Cimarex Energy",
+      "subIndustry": "IGT"
+    },
+    {
+      "symbol": "May 8, 2014",
+      "name": "AVGO",
+      "gicsSector": "Avago Technologies",
+      "subIndustry": "LSI"
+    },
+    {
+      "symbol": "May 1, 2014",
+      "name": "UA",
+      "gicsSector": "Under Armour",
+      "subIndustry": "BEAM"
+    },
+    {
+      "symbol": "May 1, 2014",
+      "name": "NAVI",
+      "gicsSector": "Navient",
+      "subIndustry": "SLM"
+    },
+    {
+      "symbol": "April 3, 2014",
+      "name": "GOOGL",
+      "gicsSector": "Google",
+      "subIndustry": null
+    },
+    {
+      "symbol": "April 2, 2014",
+      "name": "ESS",
+      "gicsSector": "Essex Property Trust",
+      "subIndustry": "CLF"
+    },
+    {
+      "symbol": "March 21, 2014",
+      "name": "GMCR",
+      "gicsSector": "Keurig Green Mountain",
+      "subIndustry": "WPX"
+    },
+    {
+      "symbol": "January 24, 2014",
+      "name": "TSCO",
+      "gicsSector": "Tractor Supply",
+      "subIndustry": "LIFE"
+    },
+    {
+      "symbol": "December 23, 2013",
+      "name": "ADS",
+      "gicsSector": "Alliance Data Systems",
+      "subIndustry": "ANF"
+    },
+    {
+      "symbol": "December 23, 2013",
+      "name": "MHK",
+      "gicsSector": "Mohawk Industries",
+      "subIndustry": "JDSU"
+    },
+    {
+      "symbol": "December 23, 2013",
+      "name": "FB",
+      "gicsSector": "Facebook",
+      "subIndustry": "TER"
+    },
+    {
+      "symbol": "December 10, 2013",
+      "name": "GGP",
+      "gicsSector": "General Growth Properties",
+      "subIndustry": "MOLX"
+    },
+    {
+      "symbol": "December 2, 2013",
+      "name": "ALLE",
+      "gicsSector": "Allegion",
+      "subIndustry": "JCP"
+    },
+    {
+      "symbol": "November 13, 2013",
+      "name": "KORS",
+      "gicsSector": "Michael Kors",
+      "subIndustry": "NYX"
+    },
+    {
+      "symbol": "October 29, 2013",
+      "name": "RIG",
+      "gicsSector": "Transocean",
+      "subIndustry": "DELL"
+    },
+    {
+      "symbol": "September 20, 2013",
+      "name": "VRTX",
+      "gicsSector": "Vertex Pharmaceuticals",
+      "subIndustry": "AMD"
+    },
+    {
+      "symbol": "September 20, 2013",
+      "name": "AME",
+      "gicsSector": "Ametek",
+      "subIndustry": "SAI"
+    },
+    {
+      "symbol": "September 10, 2013",
+      "name": "DAL",
+      "gicsSector": "Delta Air Lines",
+      "subIndustry": "BMC"
+    },
+    {
+      "symbol": "July 8, 2013",
+      "name": "NLSN",
+      "gicsSector": "Nielsen Holdings",
+      "subIndustry": "S"
+    },
+    {
+      "symbol": "July 1, 2013",
+      "name": "NWSA",
+      "gicsSector": "21st Century Fox",
+      "subIndustry": "APOL"
+    },
+    {
+      "symbol": "June 21, 2013",
+      "name": "ZTS",
+      "gicsSector": "Zoetis",
+      "subIndustry": "FHN"
+    },
+    {
+      "symbol": "June 6, 2013",
+      "name": "GM",
+      "gicsSector": "General Motors",
+      "subIndustry": "HNZ"
+    },
+    {
+      "symbol": "May 23, 2013",
+      "name": "KSU",
+      "gicsSector": "Kansas City Southern",
+      "subIndustry": "DF"
+    },
+    {
+      "symbol": "May 8, 2013",
+      "name": "MAC",
+      "gicsSector": "Macerich",
+      "subIndustry": "CVH"
+    },
+    {
+      "symbol": "April 30, 2013",
+      "name": "REGN",
+      "gicsSector": "Regeneron Pharmaceuticals",
+      "subIndustry": "PCS"
+    },
+    {
+      "symbol": "February 15, 2013",
+      "name": "PVH",
+      "gicsSector": "PVH",
+      "subIndustry": "BIG"
+    },
+    {
+      "symbol": "January 2, 2013",
+      "name": "ABBV",
+      "gicsSector": "AbbVie",
+      "subIndustry": "FII"
+    },
+    {
+      "symbol": "December 21, 2012",
+      "name": "DLPH",
+      "gicsSector": "Delphi Automotive",
+      "subIndustry": "TIE"
+    },
+    {
+      "symbol": "December 11, 2012",
+      "name": "GRMN",
+      "gicsSector": "Garmin",
+      "subIndustry": "RRD"
+    },
+    {
+      "symbol": "December 3, 2012",
+      "name": "DG",
+      "gicsSector": "Dollar General",
+      "subIndustry": "CBE"
+    },
+    {
+      "symbol": "October 10, 2012",
+      "name": "PETM",
+      "gicsSector": "PetSmart",
+      "subIndustry": "SUN"
+    },
+    {
+      "symbol": "October 2, 2012",
+      "name": "KRFT",
+      "gicsSector": "Kraft Foods",
+      "subIndustry": "ANR"
+    },
+    {
+      "symbol": "October 2, 2012",
+      "name": "MDLZ",
+      "gicsSector": "Mondelez",
+      "subIndustry": "KFT"
+    },
+    {
+      "symbol": "October 1, 2012",
+      "name": "ADT",
+      "gicsSector": "ADT",
+      "subIndustry": "LXK"
+    },
+    {
+      "symbol": "October 1, 2012",
+      "name": "PNR",
+      "gicsSector": "Pentair",
+      "subIndustry": "DV"
+    },
+    {
+      "symbol": "September 5, 2012",
+      "name": "LYB",
+      "gicsSector": "LyondellBasell",
+      "subIndustry": "SHLD"
+    },
+    {
+      "symbol": "July 31, 2012",
+      "name": "ESV",
+      "gicsSector": "Ensco",
+      "subIndustry": "GR"
+    },
+    {
+      "symbol": "July 2, 2012",
+      "name": "STX",
+      "gicsSector": "Seagate Technology",
+      "subIndustry": "PGN"
+    },
+    {
+      "symbol": "June 29, 2012",
+      "name": "MNST",
+      "gicsSector": "Monster Beverage",
+      "subIndustry": "SLE"
+    },
+    {
+      "symbol": "June 5, 2012",
+      "name": "LRCX",
+      "gicsSector": "Lam Research",
+      "subIndustry": "NVLS"
+    },
+    {
+      "symbol": "May 21, 2012",
+      "name": "ALXN",
+      "gicsSector": "Alexion Pharmaceuticals",
+      "subIndustry": "MMI"
+    },
+    {
+      "symbol": "May 17, 2012",
+      "name": "KMI",
+      "gicsSector": "Kinder Morgan",
+      "subIndustry": "EP"
+    },
+    {
+      "symbol": "April 23, 2012",
+      "name": "PSX",
+      "gicsSector": "Phillips 66",
+      "subIndustry": "SVU"
+    },
+    {
+      "symbol": "April 3, 2012",
+      "name": "FOSL",
+      "gicsSector": "Fossil",
+      "subIndustry": "MHS"
+    },
+    {
+      "symbol": "March 13, 2012",
+      "name": "CCI",
+      "gicsSector": "Crown Castle",
+      "subIndustry": "CEG"
+    },
+    {
+      "symbol": "December 31, 2011",
+      "name": "WPX",
+      "gicsSector": "WPX Energy",
+      "subIndustry": "CPWR"
+    },
+    {
+      "symbol": "December 20, 2011",
+      "name": "TRIP",
+      "gicsSector": "TripAdvisor",
+      "subIndustry": "TLAB"
+    },
+    {
+      "symbol": "December 16, 2011",
+      "name": "BWA",
+      "gicsSector": "BorgWarner",
+      "subIndustry": "AKS"
+    },
+    {
+      "symbol": "December 16, 2011",
+      "name": "PRGO",
+      "gicsSector": "Perrigo",
+      "subIndustry": "MWW"
+    },
+    {
+      "symbol": "December 16, 2011",
+      "name": "DLTR",
+      "gicsSector": "Dollar Tree",
+      "subIndustry": "WFR"
+    },
+    {
+      "symbol": "December 12, 2011",
+      "name": "GAS",
+      "gicsSector": "AGL Resources.",
+      "subIndustry": "GAS"
+    },
+    {
+      "symbol": "November 18, 2011",
+      "name": "CBE",
+      "gicsSector": "Cooper Industries",
+      "subIndustry": "JNS"
+    },
+    {
+      "symbol": "October 31, 2011",
+      "name": "XYL",
+      "gicsSector": "Xylem",
+      "subIndustry": "ITT"
+    },
+    {
+      "symbol": "October 14, 2011",
+      "name": "TEL",
+      "gicsSector": "TE Connectivity",
+      "subIndustry": "CEPH"
+    },
+    {
+      "symbol": "September 23, 2011",
+      "name": "MOS",
+      "gicsSector": "The Mosaic Company",
+      "subIndustry": "NSM"
+    },
+    {
+      "symbol": "July 5, 2011",
+      "name": "ACN",
+      "gicsSector": "Accenture",
+      "subIndustry": "MI"
+    },
+    {
+      "symbol": "June 30, 2011",
+      "name": "MPC",
+      "gicsSector": "Marathon Oil",
+      "subIndustry": "RSH"
+    },
+    {
+      "symbol": "June 1, 2011",
+      "name": "ANR",
+      "gicsSector": "Alpha Natural Resources",
+      "subIndustry": "MEE"
+    },
+    {
+      "symbol": "April 27, 2011",
+      "name": "CMG",
+      "gicsSector": "Chipotle Mexican Grill",
+      "subIndustry": "NOVL"
+    },
+    {
+      "symbol": "April 1, 2011",
+      "name": "BLK",
+      "gicsSector": "BlackRock",
+      "subIndustry": "GENZ"
+    },
+    {
+      "symbol": "March 31, 2011",
+      "name": "EW",
+      "gicsSector": "Edwards Lifesciences",
+      "subIndustry": "Q"
+    },
+    {
+      "symbol": "February 28, 2011",
+      "name": "COV",
+      "gicsSector": "Covidien",
+      "subIndustry": "MFE"
+    },
+    {
+      "symbol": "February 25, 2011",
+      "name": "JOYG",
+      "gicsSector": "Joy Global",
+      "subIndustry": "AYE"
+    },
+    {
+      "symbol": "January 3, 2011",
+      "name": "MMI",
+      "gicsSector": "Motorola Mobility",
+      "subIndustry": "MDP"
+    },
+    {
+      "symbol": "December 17, 2010",
+      "name": "CVC",
+      "gicsSector": "Cablevision",
+      "subIndustry": "KG"
+    },
+    {
+      "symbol": "December 17, 2010",
+      "name": "FFIV",
+      "gicsSector": "F5 Networks",
+      "subIndustry": "EK"
+    },
+    {
+      "symbol": "December 17, 2010",
+      "name": "NFLX",
+      "gicsSector": "Netflix",
+      "subIndustry": "ODP"
+    },
+    {
+      "symbol": "December 17, 2010",
+      "name": "NFX",
+      "gicsSector": "Newfield Exploration",
+      "subIndustry": "NYT"
+    },
+    {
+      "symbol": "November 17, 2010",
+      "name": "IR",
+      "gicsSector": "Ingersoll-Rand",
+      "subIndustry": "PTV"
+    },
+    {
+      "symbol": "August 26, 2010",
+      "name": "TYC",
+      "gicsSector": "Tyco International",
+      "subIndustry": "SII"
+    },
+    {
+      "symbol": "July 14, 2010",
+      "name": "CB",
+      "gicsSector": "Chubb",
+      "subIndustry": "MIL"
+    },
+    {
+      "symbol": "June 30, 2010",
+      "name": "QEP",
+      "gicsSector": "QEP Resources",
+      "subIndustry": "STR"
+    },
+    {
+      "symbol": "June 28, 2010",
+      "name": "KMX",
+      "gicsSector": "CarMax",
+      "subIndustry": "XTO"
+    },
+    {
+      "symbol": "April 29, 2010",
+      "name": "CERN",
+      "gicsSector": "Cerner",
+      "subIndustry": "BJS"
+    },
+    {
+      "symbol": "February 26, 2010",
+      "name": "HP",
+      "gicsSector": "Helmerich & Payne",
+      "subIndustry": "RX"
+    },
+    {
+      "symbol": "December 18, 2009",
+      "name": "V",
+      "gicsSector": "Visa",
+      "subIndustry": "CIEN"
+    },
+    {
+      "symbol": "December 18, 2009",
+      "name": "MJN",
+      "gicsSector": "Mead Johnson Nutrition",
+      "subIndustry": "DYN"
+    },
+    {
+      "symbol": "December 18, 2009",
+      "name": "CLF",
+      "gicsSector": "Cliffs Natural Resources",
+      "subIndustry": "KBH"
+    },
+    {
+      "symbol": "December 18, 2009",
+      "name": "SAI",
+      "gicsSector": "SAIC",
+      "subIndustry": "CVG"
+    },
+    {
+      "symbol": "December 18, 2009",
+      "name": "ROST",
+      "gicsSector": "Ross Stores",
+      "subIndustry": "MBI"
+    },
+    {
+      "symbol": "November 3, 2009",
+      "name": "PCLN",
+      "gicsSector": "Priceline.com",
+      "subIndustry": "SGP"
+    },
+    {
+      "symbol": "September 28, 2009",
+      "name": "ARG",
+      "gicsSector": "Airgas",
+      "subIndustry": "CBE"
+    },
+    {
+      "symbol": "August 19, 2009",
+      "name": "FMC",
+      "gicsSector": "FMC Corporation",
+      "subIndustry": "CTX"
+    },
+    {
+      "symbol": "June 29, 2009",
+      "name": "PCS",
+      "gicsSector": "MetroPCS",
+      "subIndustry": null
+    },
+    {
+      "symbol": "June 25, 2009",
+      "name": null,
+      "gicsSector": null,
+      "subIndustry": "TEL"
+    },
+    {
+      "symbol": "June 5, 2009",
+      "name": "FTI",
+      "gicsSector": "FMC Technologies",
+      "subIndustry": "COV"
+    },
+    {
+      "symbol": "March 3, 2009",
+      "name": "HRL",
+      "gicsSector": "Hormel Foods",
+      "subIndustry": "ACAS"
+    },
+    {
+      "symbol": "March 3, 2009",
+      "name": "VTR",
+      "gicsSector": "Ventas",
+      "subIndustry": "JNY"
+    },
+    {
+      "symbol": "December 31, 2008",
+      "name": "OI",
+      "gicsSector": "Owens-Illinois",
+      "subIndustry": "WB"
+    },
+    {
+      "symbol": "September 16, 2008",
+      "name": "HRS",
+      "gicsSector": "Harris Corporation",
+      "subIndustry": "LEH"
+    },
+    {
+      "symbol": "September 12, 2008",
+      "name": "CRM",
+      "gicsSector": "Salesforce",
+      "subIndustry": "FRE"
+    },
+    {
+      "symbol": "September 12, 2008",
+      "name": "FAST",
+      "gicsSector": "Fastenal",
+      "subIndustry": "FNM"
+    },
+    {
+      "symbol": "July 1, 2008",
+      "name": "AKS",
+      "gicsSector": "AK Steel",
+      "subIndustry": "CFC"
+    },
+    {
+      "symbol": "June 23, 2008",
+      "name": "COG",
+      "gicsSector": "Cabot Oil & Gas",
+      "subIndustry": "BC"
+    },
+    {
+      "symbol": "June 23, 2008",
+      "name": "MEE",
+      "gicsSector": "Massey Energy",
+      "subIndustry": "OMX"
+    },
+    {
+      "symbol": "June 10, 2008",
+      "name": "LO",
+      "gicsSector": "Lorillard Tobacco Company",
+      "subIndustry": "ABK"
+    },
+    {
+      "symbol": "December 20, 2007",
+      "name": "RRC",
+      "gicsSector": "Range Resources",
+      "subIndustry": "TRB"
+    },
+    {
+      "symbol": "December 13, 2007",
+      "name": "GME",
+      "gicsSector": "GameStop",
+      "subIndustry": "DJ"
+    },
+    {
+      "symbol": "October 26, 2007",
+      "name": "JEC",
+      "gicsSector": "Jacobs Engineering Group",
+      "subIndustry": "AV"
+    },
+    {
+      "symbol": "October 2, 2007",
+      "name": "EXPE",
+      "gicsSector": "Expedia",
+      "subIndustry": "SLR"
+    },
+    {
+      "symbol": "October 1, 2007",
+      "name": "TDC",
+      "gicsSector": "Teradata",
+      "subIndustry": "NCR"
+    },
+    {
+      "symbol": "September 27, 2007",
+      "name": "TSO",
+      "gicsSector": "Tesoro Corporation",
+      "subIndustry": "MXIM"
+    },
+    {
+      "symbol": "September 26, 2007",
+      "name": "ICE",
+      "gicsSector": "Intercontinental Exchange",
+      "subIndustry": "FDC"
+    },
+    {
+      "symbol": "August 24, 2007",
+      "name": "LUK",
+      "gicsSector": "Leucadia National",
+      "subIndustry": "KSE"
+    },
+    {
+      "symbol": "July 2, 2007",
+      "name": "DFS",
+      "gicsSector": "Discover Financial",
+      "subIndustry": "ADCT"
+    },
+    {
+      "symbol": "March 30, 2007",
+      "name": "KFT",
+      "gicsSector": "Kraft Foods",
+      "subIndustry": "TSG"
+    },
+    {
+      "symbol": "January 10, 2007",
+      "name": "AVB",
+      "gicsSector": "AvalonBay Communities",
+      "subIndustry": "SBL"
+    },
+    {
+      "symbol": "June 2, 2006",
+      "name": "JNPR",
+      "gicsSector": "Juniper Networks",
+      "subIndustry": "ABS"
+    },
+    {
+      "symbol": "November 18, 2005",
+      "name": "AMZN",
+      "gicsSector": "Amazon",
+      "subIndustry": "T"
+    },
+    {
+      "symbol": "July 1, 2005",
+      "name": "STZ",
+      "gicsSector": "Constellation Brands",
+      "subIndustry": "GLK"
+    },
+    {
+      "symbol": "September 25, 2003",
+      "name": "ESRX",
+      "gicsSector": "Express Scripts",
+      "subIndustry": "QTRN"
+    },
+    {
+      "symbol": "December 5, 2000",
+      "name": "INTU",
+      "gicsSector": "Intuit",
+      "subIndustry": "BS"
+    },
+    {
+      "symbol": "December 5, 2000",
+      "name": "SBL",
+      "gicsSector": "Symbol Technologies",
+      "subIndustry": "OI"
+    },
+    {
+      "symbol": "December 5, 2000",
+      "name": "AYE",
+      "gicsSector": "Allegheny Energy",
+      "subIndustry": "GRA"
+    },
+    {
+      "symbol": "December 5, 2000",
+      "name": "ABK",
+      "gicsSector": "Ambac Financial",
+      "subIndustry": "CCK"
+    },
+    {
+      "symbol": "July 27, 2000",
+      "name": "JDSU",
+      "gicsSector": "JDS Uniphase",
+      "subIndustry": "RAD"
+    },
+    {
+      "symbol": "June 12, 2000",
+      "name": "CVG",
+      "gicsSector": "Convergys",
+      "subIndustry": "TMC"
+    },
+    {
+      "symbol": "June 7, 2000",
+      "name": "SBUX",
+      "gicsSector": "Starbucks",
+      "subIndustry": "SMS"
+    },
+    {
+      "symbol": "December 8, 1999",
+      "name": "YHOO",
+      "gicsSector": "Yahoo!",
+      "subIndustry": "LDW"
+    },
+    {
+      "symbol": "June 9, 1999",
+      "name": "WLP",
+      "gicsSector": "Wellpoint",
+      "subIndustry": "HPH"
+    },
+    {
+      "symbol": "April 12, 1999",
+      "name": "ACT",
+      "gicsSector": "Actavis",
+      "subIndustry": null
+    },
+    {
+      "symbol": "December 11, 1998",
+      "name": "FSR",
+      "gicsSector": "Firstar",
+      "subIndustry": "AN"
+    },
+    {
+      "symbol": "December 11, 1998",
+      "name": "CCL",
+      "gicsSector": "Carnival Corp.",
+      "subIndustry": "GRN"
+    },
+    {
+      "symbol": "December 11, 1998",
+      "name": "CPWR",
+      "gicsSector": "Compuware",
+      "subIndustry": "SUN"
+    },
+    {
+      "symbol": "June 17, 1997",
+      "name": "CCR",
+      "gicsSector": "Countrywide Credit Industries",
+      "subIndustry": "USL"
+    },
+    {
+      "symbol": "September 30, 1994",
+      "name": "NCC",
+      "gicsSector": "National City",
+      "subIndustry": "MCK"
+    },
+    {
+      "symbol": "July 1, 1976",
+      "name": "BUD",
+      "gicsSector": "Anheuser Busch",
+      "subIndustry": "HNG"
+    },
+    {
+      "symbol": "July 1, 1976",
+      "name": "DIS",
+      "gicsSector": "The Walt Disney Company",
+      "subIndustry": "AYE"
+    }
+  ]
+}

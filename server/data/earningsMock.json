@@ -1,0 +1,89 @@
+{
+    "AAPL": {
+        "ticker": "AAPL",
+        "period": {
+            "period_id": "FY2026Q1",
+            "quarter_end_date": "2025-12-27",
+            "filing_date": "2026-01-29",
+            "currency": "USD",
+            "scaling": "million"
+        },
+        "sources": [
+            {
+                "doc_type": "earnings_release",
+                "url": "mock://AAPL-release"
+            }
+        ],
+        "reported": {
+            "income": {
+                "revenue": 143756,
+                "gross_profit": 69231,
+                "operating_income": 50852,
+                "net_income": 42097
+            },
+            "balance": {
+                "total_assets": 379297,
+                "current_assets": 158104,
+                "cash_and_equivalents": 45317,
+                "short_term_investments": 0
+            },
+            "cashflow": {
+                "operating_cash_flow": 53925,
+                "capex": -2373
+            },
+            "shares": {
+                "diluted": 14810356,
+                "basic": 14748158
+            }
+        },
+        "adjustments": [
+            {
+                "label": "SBC",
+                "amount": 3594,
+                "statement_line": "opex",
+                "pre_tax_or_after_tax": "pre",
+                "recurring_flag": true,
+                "notes": "Share-based comp expense"
+            }
+        ]
+    },
+    "MSFT": {
+        "ticker": "MSFT",
+        "period": {
+            "period_id": "FY2025Q4",
+            "quarter_end_date": "2025-06-30",
+            "filing_date": "2025-07-30",
+            "currency": "USD",
+            "scaling": "million"
+        },
+        "sources": [
+            {
+                "doc_type": "earnings_release",
+                "url": "mock://MSFT-release"
+            }
+        ],
+        "reported": {
+            "income": {
+                "revenue": 64700,
+                "gross_profit": 45000,
+                "operating_income": 28000,
+                "net_income": 22000
+            },
+            "balance": {
+                "total_assets": 550000,
+                "current_assets": 210000,
+                "cash_and_equivalents": 80000,
+                "short_term_investments": 0
+            },
+            "cashflow": {
+                "operating_cash_flow": 30000,
+                "capex": -8000
+            },
+            "shares": {
+                "diluted": 7400,
+                "basic": 7350
+            }
+        },
+        "adjustments": []
+    }
+}

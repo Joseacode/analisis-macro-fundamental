@@ -1,25 +1,47 @@
+// src/App.tsx
+
 import { useEffect, useState } from 'react';
-import { DashboardHeader } from './components/ui/DashboardHeader';
+import { NotificationCenter } from './components/NotificationCenter';
+import { SettingsPanel } from './components/SettingsPanel';
 import { useAppDispatch } from './app/hooks';
 import { fetchMacroData } from './features/macro/macroSlice';
 
 import { MacroTab } from './tabs/MacroTab';
 import { FundamentalTab } from './tabs/FundamentalTab';
+import { FilingsTab } from './tabs/FilingsTab';
 
-type TabKey = 'macro' | 'fundamental';
+type TabKey = 'macro' | 'fundamental' | 'filings';
 
 function App() {
   const dispatch = useAppDispatch();
   const [tab, setTab] = useState<TabKey>('macro');
 
   useEffect(() => {
-    // El thunk ya hace load + calculateRegime
     dispatch(fetchMacroData() as any);
   }, [dispatch]);
 
   return (
     <div className="min-h-screen bg-slate-950">
-      <DashboardHeader />
+      {/* ✅ Header con notificaciones integradas */}
+      <header className="border-b border-slate-800">
+        <div className="px-6 py-4 flex justify-between items-center">
+          {/* Left: DashboardHeader (título + subtítulo) */}
+          <div>
+            <h1 className="text-2xl font-bold text-cyan-400">
+              Institutional Macro Dashboard
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Real-time Market Analytics
+            </p>
+          </div>
+
+          {/* Right: Campanita + Ruedita */}
+          <div className="flex gap-3">
+            <NotificationCenter />
+            <SettingsPanel />
+          </div>
+        </div>
+      </header>
 
       {/* Tabs */}
       <div className="px-6">
@@ -27,8 +49,8 @@ function App() {
           <button
             onClick={() => setTab('macro')}
             className={`px-4 py-2 rounded-lg font-medium transition ${tab === 'macro'
-                ? 'bg-cyan-500 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              ? 'bg-cyan-500 text-white'
+              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
           >
             🧠 Macro
@@ -37,11 +59,21 @@ function App() {
           <button
             onClick={() => setTab('fundamental')}
             className={`px-4 py-2 rounded-lg font-medium transition ${tab === 'fundamental'
-                ? 'bg-cyan-500 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              ? 'bg-cyan-500 text-white'
+              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
           >
             📚 Fundamental
+          </button>
+
+          <button
+            onClick={() => setTab('filings')}
+            className={`px-4 py-2 rounded-lg font-medium transition ${tab === 'filings'
+              ? 'bg-cyan-500 text-white'
+              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+          >
+            📄 Filings
           </button>
         </div>
 
@@ -49,7 +81,13 @@ function App() {
       </div>
 
       {/* Tab content */}
-      {tab === 'macro' ? <MacroTab /> : <FundamentalTab />}
+      {tab === 'macro' ? (
+        <MacroTab />
+      ) : tab === 'fundamental' ? (
+        <FundamentalTab />
+      ) : (
+        <FilingsTab />
+      )}
     </div>
   );
 }

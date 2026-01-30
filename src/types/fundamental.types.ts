@@ -11,7 +11,7 @@ export interface FundamentalSnapshot {
 
     // clasificación (recomendado para UI)
     sector: string | null;
-
+    epsTTM?: number | null;
     // mercado (opcionales pero útiles)
     name?: string | null;
     price?: number | null;
@@ -70,3 +70,4 @@ export interface SectorFundamentalsResponse {
     asOf: string | null;
     source: FundamentalSource;
 }
+
