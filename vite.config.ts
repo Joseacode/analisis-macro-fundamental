@@ -1,3 +1,5 @@
+// vite.config.ts
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -8,6 +10,8 @@ export default defineConfig({
       "/api/sec": { target: "http://localhost:8787", changeOrigin: true, secure: false },
       "/api/yf": { target: "http://localhost:8787", changeOrigin: true, secure: false },
       "/api/health": { target: "http://localhost:8787", changeOrigin: true, secure: false },
+      "/api/earnings": { target: "http://localhost:8787", changeOrigin: true, secure: false },
+
 
       "/api/fred": {
         target: "https://api.stlouisfed.org/fred",

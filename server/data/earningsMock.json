@@ -36,6 +36,14 @@
                 "basic": 14748158
             }
         },
+        "adjusted": {
+            "income": {
+                "revenue": 143756,
+                "gross_profit": 69231,
+                "operating_income": 54446,
+                "net_income": 45691
+            }
+        },
         "adjustments": [
             {
                 "label": "SBC",
@@ -45,7 +53,77 @@
                 "recurring_flag": true,
                 "notes": "Share-based comp expense"
             }
-        ]
+        ],
+        "derived": {
+            "highlights": [
+                "Record Q1 revenue of $143.8B (+4% YoY)",
+                "Services revenue hit all-time high",
+                "iPhone revenue grew 5.8% YoY to $69.1B",
+                "Operating margin improved to 35.4%"
+            ],
+            "metricRows": [
+                {
+                    "key": "revenue",
+                    "label": "Revenue",
+                    "category": "Growth",
+                    "unit": "USD",
+                    "value_reported": 143756,
+                    "value_adjusted": 143756,
+                    "trend_qoq": 5.2,
+                    "trend_yoy": 4.0
+                },
+                {
+                    "key": "gross_margin",
+                    "label": "Gross Margin",
+                    "category": "Profitability",
+                    "unit": "%",
+                    "value_reported": 48.2,
+                    "value_adjusted": 48.2,
+                    "trend_qoq": 0.8,
+                    "trend_yoy": 1.3
+                },
+                {
+                    "key": "operating_margin",
+                    "label": "Operating Margin",
+                    "category": "Profitability",
+                    "unit": "%",
+                    "value_reported": 35.4,
+                    "value_adjusted": 37.9,
+                    "trend_qoq": 1.2,
+                    "trend_yoy": 2.1
+                },
+                {
+                    "key": "net_margin",
+                    "label": "Net Margin",
+                    "category": "Profitability",
+                    "unit": "%",
+                    "value_reported": 29.3,
+                    "value_adjusted": 31.8,
+                    "trend_qoq": 0.9,
+                    "trend_yoy": 1.6
+                },
+                {
+                    "key": "fcf_margin",
+                    "label": "FCF Margin",
+                    "category": "Quality",
+                    "unit": "%",
+                    "value_reported": 35.9,
+                    "value_adjusted": 35.9,
+                    "trend_qoq": 1.5,
+                    "trend_yoy": 2.3
+                },
+                {
+                    "key": "eps_diluted",
+                    "label": "EPS (Diluted)",
+                    "category": "Growth",
+                    "unit": "USD",
+                    "value_reported": 2.84,
+                    "value_adjusted": 3.08,
+                    "trend_qoq": 6.2,
+                    "trend_yoy": 9.7
+                }
+            ]
+        }
     },
     "MSFT": {
         "ticker": "MSFT",
@@ -84,6 +162,201 @@
                 "basic": 7350
             }
         },
-        "adjustments": []
+        "adjusted": {
+            "income": {
+                "revenue": 64700,
+                "gross_profit": 45000,
+                "operating_income": 28000,
+                "net_income": 22000
+            }
+        },
+        "adjustments": [],
+        "derived": {
+            "highlights": [
+                "Azure and cloud services revenue +30% YoY",
+                "Commercial cloud revenue run rate exceeds $150B annually",
+                "LinkedIn revenue +10% YoY",
+                "Strong momentum in AI and Copilot adoption"
+            ],
+            "metricRows": [
+                {
+                    "key": "revenue",
+                    "label": "Revenue",
+                    "category": "Growth",
+                    "unit": "USD",
+                    "value_reported": 64700,
+                    "value_adjusted": 64700,
+                    "trend_qoq": 8.3,
+                    "trend_yoy": 15.2
+                },
+                {
+                    "key": "gross_margin",
+                    "label": "Gross Margin",
+                    "category": "Profitability",
+                    "unit": "%",
+                    "value_reported": 69.5,
+                    "value_adjusted": 69.5,
+                    "trend_qoq": 0.6,
+                    "trend_yoy": 1.8
+                },
+                {
+                    "key": "operating_margin",
+                    "label": "Operating Margin",
+                    "category": "Profitability",
+                    "unit": "%",
+                    "value_reported": 43.3,
+                    "value_adjusted": 43.3,
+                    "trend_qoq": 1.1,
+                    "trend_yoy": 2.4
+                },
+                {
+                    "key": "net_margin",
+                    "label": "Net Margin",
+                    "category": "Profitability",
+                    "unit": "%",
+                    "value_reported": 34.0,
+                    "value_adjusted": 34.0,
+                    "trend_qoq": 0.8,
+                    "trend_yoy": 1.9
+                },
+                {
+                    "key": "fcf_margin",
+                    "label": "FCF Margin",
+                    "category": "Quality",
+                    "unit": "%",
+                    "value_reported": 34.0,
+                    "value_adjusted": 34.0,
+                    "trend_qoq": 1.3,
+                    "trend_yoy": 2.8
+                },
+                {
+                    "key": "eps_diluted",
+                    "label": "EPS (Diluted)",
+                    "category": "Growth",
+                    "unit": "USD",
+                    "value_reported": 2.97,
+                    "value_adjusted": 2.97,
+                    "trend_qoq": 8.1,
+                    "trend_yoy": 15.5
+                }
+            ]
+        }
+    },
+    "MPWR": {
+        "ticker": "MPWR",
+        "period": {
+            "period_id": "FY2025Q4",
+            "quarter_end_date": "2025-12-31",
+            "filing_date": "2026-01-30",
+            "currency": "USD",
+            "scaling": "million"
+        },
+        "sources": [
+            {
+                "doc_type": "earnings_release",
+                "url": "mock://MPWR-release"
+            }
+        ],
+        "reported": {
+            "income": {
+                "revenue": 620,
+                "gross_profit": 348,
+                "operating_income": 208,
+                "net_income": 174
+            },
+            "balance": {
+                "total_assets": 3200,
+                "current_assets": 1450,
+                "cash_and_equivalents": 680,
+                "short_term_investments": 0
+            },
+            "cashflow": {
+                "operating_cash_flow": 185,
+                "capex": -32
+            },
+            "shares": {
+                "diluted": 48500,
+                "basic": 47800
+            }
+        },
+        "adjusted": {
+            "income": {
+                "revenue": 620,
+                "gross_profit": 348,
+                "operating_income": 208,
+                "net_income": 174
+            }
+        },
+        "adjustments": [],
+        "derived": {
+            "highlights": [
+                "Mock data (MVP)",
+                "Endpoint funcionando",
+                "Listo para reemplazar por parsing real",
+                "Revenue growth driven by data center demand"
+            ],
+            "metricRows": [
+                {
+                    "key": "revenue",
+                    "label": "Revenue",
+                    "category": "Growth",
+                    "unit": "USD",
+                    "value_reported": 620,
+                    "value_adjusted": 620,
+                    "trend_qoq": 3.2,
+                    "trend_yoy": 14.8
+                },
+                {
+                    "key": "gross_margin",
+                    "label": "Gross Margin",
+                    "category": "Profitability",
+                    "unit": "%",
+                    "value_reported": 56.2,
+                    "value_adjusted": 56.2,
+                    "trend_qoq": 0.4,
+                    "trend_yoy": 1.1
+                },
+                {
+                    "key": "operating_margin",
+                    "label": "Operating Margin",
+                    "category": "Profitability",
+                    "unit": "%",
+                    "value_reported": 33.5,
+                    "value_adjusted": 33.5,
+                    "trend_qoq": 0.6,
+                    "trend_yoy": 1.8
+                },
+                {
+                    "key": "net_margin",
+                    "label": "Net Margin",
+                    "category": "Profitability",
+                    "unit": "%",
+                    "value_reported": 28.1,
+                    "value_adjusted": 28.1,
+                    "trend_qoq": 0.5,
+                    "trend_yoy": 1.2
+                },
+                {
+                    "key": "fcf_margin",
+                    "label": "FCF Margin",
+                    "category": "Quality",
+                    "unit": "%",
+                    "value_reported": 24.7,
+                    "value_adjusted": 24.7,
+                    "trend_qoq": 0.2,
+                    "trend_yoy": 0.9
+                },
+                {
+                    "key": "eps_diluted",
+                    "label": "EPS (Diluted)",
+                    "category": "Growth",
+                    "unit": "USD",
+                    "value_reported": 3.59,
+                    "value_adjusted": 3.59,
+                    "trend_qoq": 3.4,
+                    "trend_yoy": 15.1
+                }
+            ]
+        }
     }
 }

@@ -68,6 +68,8 @@ app.use((req, res) => {
         error: "Ruta no encontrada",
         path: req.path,
         availableRoutes: [
+            "/api/earnings/_debug",
+            "/api/earnings/:ticker",
             "/api/health",
             "/api/yf/_debug",
             "/api/yf/sp500",
