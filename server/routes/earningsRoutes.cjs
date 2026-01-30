@@ -3,6 +3,10 @@
 const path = require("path");
 const fs = require("fs/promises");
 
+// ✅ NUEVO: imports para SEC discovery
+const { discoverEarningsFromSEC } = require("../services/secEdgar.cjs");
+const { resolveEarningsSource } = require("../services/earningsSourceResolver.cjs");
+
 // Lee JSON mock una vez por request (simple). Luego optimizamos con cache en memoria.
 const MOCK_FILE = path.resolve(__dirname, "..", "data", "earningsMock.json");
 
@@ -105,8 +109,9 @@ function normalizeSymbol(sym) {
 }
 
 function registerEarningsRoutes(app) {
-    console.log("✓ Rutas Earnings registradas (MOCK)");
+    console.log("✓ Rutas Earnings registradas (MOCK + SEC Discovery)");
 
+    // ✅ 1. Debug endpoint (más específico primero)
     app.get("/api/earnings/_debug", async (_req, res) => {
         try {
             const data = await readMock();
@@ -121,6 +126,31 @@ function registerEarningsRoutes(app) {
         }
     });
 
+    // ✅ 2. NUEVO: Source discovery endpoint (SEC EDGAR)
+    app.get("/api/earnings/source/:symbol", async (req, res) => {
+        try {
+            const sym = normalizeSymbol(req.params.symbol);
+
+            const sec = await discoverEarningsFromSEC(sym);
+            const resolved = resolveEarningsSource(sec);
+
+            res.json({
+                ok: true,
+                ticker: sym,
+                sec,
+                resolved,
+            });
+        } catch (e) {
+            console.error("✗ ERROR en earnings/source:", e.message);
+            res.status(500).json({
+                ok: false,
+                error: "Earnings source error",
+                detail: String(e?.message ?? e),
+            });
+        }
+    });
+
+    // ✅ 3. Mock data endpoint (catch-all al final)
     app.get("/api/earnings/:symbol", async (req, res) => {
         try {
             const sym = normalizeSymbol(req.params.symbol);
