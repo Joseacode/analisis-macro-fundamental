@@ -10,6 +10,9 @@ const { resolveEarningsSource } = require("../services/earningsSourceResolver.cj
 // Lee JSON mock una vez por request (simple). Luego optimizamos con cache en memoria.
 const MOCK_FILE = path.resolve(__dirname, "..", "data", "earningsMock.json");
 
+// ✅ A4: fetch documento primario desde SEC (sin parsear)
+const { buildSecPrimaryDocUrl, fetchSecDocumentText } = require("../services/secArchives.cjs");
+
 async function readMock() {
     const txt = await fs.readFile(MOCK_FILE, "utf-8");
     return JSON.parse(txt);
@@ -173,6 +176,63 @@ function registerEarningsRoutes(app) {
             res.status(500).json({ error: "Earnings error", detail: String(e?.message ?? e) });
         }
     });
+
+    app.get("/api/earnings/doc/:symbol", async (req, res) => {
+        try {
+            const sym = normalizeSymbol(req.params.symbol);
+
+            const sec = await discoverEarningsFromSEC(sym);
+            const resolved = resolveEarningsSource(sec);
+
+            if (!sec?.ok) {
+                return res.status(404).json({ ok: false, ticker: sym, error: sec?.error || "SEC discovery failed" });
+            }
+            if (!resolved?.selected) {
+                return res.status(404).json({ ok: false, ticker: sym, error: "No selected filing to fetch", resolved });
+            }
+
+            const url = buildSecPrimaryDocUrl({
+                cik: sec.cik,
+                accessionNumber: resolved.selected.accessionNumber,
+                primaryDocument: resolved.selected.primaryDocument,
+            });
+
+            if (!url) {
+                return res.status(400).json({
+                    ok: false,
+                    ticker: sym,
+                    error: "Could not build SEC document URL",
+                    secCik: sec.cik,
+                    selected: resolved.selected,
+                });
+            }
+
+            const { text, contentType } = await fetchSecDocumentText(url, { timeoutMs: 15000 });
+
+            // Preview para que no explote la respuesta
+            const previewLen = Math.max(500, Math.min(8000, Number(req.query.previewLen ?? 4000)));
+            const preview = text.slice(0, previewLen);
+
+            res.json({
+                ok: true,
+                ticker: sym,
+                selected: resolved.selected,
+                url,
+                contentType,
+                textLength: text.length,
+                preview,
+            });
+        } catch (e) {
+            console.error("✗ ERROR en earnings/doc:", e.message);
+            res.status(500).json({
+                ok: false,
+                error: "Earnings doc fetch error",
+                detail: String(e?.message ?? e),
+            });
+        }
+    });
 }
+
+
 
 module.exports = { registerEarningsRoutes };
