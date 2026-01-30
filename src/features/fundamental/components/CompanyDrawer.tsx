@@ -714,6 +714,7 @@ function OverviewTab({ item, peerStats }: { item: ScoredItem; peerStats: PeerSta
 // ============================================
 function ComparablesTab({ item, allCompanies }: { item: ScoredItem; allCompanies: ScoredItem[] }) {
     const [selectedComparable, setSelectedComparable] = useState<ScoredItem | null>(null);
+    const [showHeadToHead, setShowHeadToHead] = useState(false);
 
     // Estado para criterios de búsqueda (múltiple selección)
     const [searchCriteria, setSearchCriteria] = useState<{
@@ -1240,7 +1241,9 @@ function ComparablesTab({ item, allCompanies }: { item: ScoredItem; allCompanies
                             onChange={(e) => {
                                 const comp = comparablesByCriteria.find((c) => c.company.ticker === e.target.value);
                                 setSelectedComparable(comp?.company ?? null);
+                                setShowHeadToHead(false); // ✅ reset
                             }}
+
                             style={{
                                 width: '100%',
                                 padding: '10px 14px',
@@ -1295,11 +1298,96 @@ function ComparablesTab({ item, allCompanies }: { item: ScoredItem; allCompanies
                         fontSize: 13,
                         fontWeight: 900,
                         marginTop: 0,
+                        marginBottom: 12,
+                        paddingBottom: 10,
+                        borderBottom: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                        Comparación primaria: {item.ticker} vs {selectedComparable.ticker}
+                    </h4>
+
+                    {/* Resumen rápido (primary comparison) */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: 10,
+                        marginBottom: 14
+                    }}>
+                        <PrimaryMetric
+                            label="Score"
+                            aLabel={item.ticker}
+                            bLabel={selectedComparable.ticker}
+                            aVal={item.score}
+                            bVal={selectedComparable.score}
+                            format={(v) => (v != null ? String(Math.round(v)) : '—')}
+                            higherIsBetter
+                        />
+                        <PrimaryMetric
+                            label="Op Margin"
+                            aLabel={item.ticker}
+                            bLabel={selectedComparable.ticker}
+                            aVal={item.operatingMargin}
+                            bVal={selectedComparable.operatingMargin}
+                            format={formatters.pct}
+                            higherIsBetter
+                        />
+                        <PrimaryMetric
+                            label="P/E"
+                            aLabel={item.ticker}
+                            bLabel={selectedComparable.ticker}
+                            aVal={item.pe}
+                            bVal={selectedComparable.pe}
+                            format={(v) => formatters.num(v, 1)}
+                            higherIsBetter={false} // ✅ menor es mejor
+                        />
+                        <PrimaryMetric
+                            label="Rev YoY"
+                            aLabel={item.ticker}
+                            bLabel={selectedComparable.ticker}
+                            aVal={item.revenueGrowthYoY}
+                            bVal={selectedComparable.revenueGrowthYoY}
+                            format={formatters.pct}
+                            higherIsBetter
+                        />
+                    </div>
+
+                    {/* Botón para expandir head-to-head */}
+                    <button
+                        onClick={() => setShowHeadToHead(true)}
+                        disabled={showHeadToHead}
+                        style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            borderRadius: 10,
+                            cursor: showHeadToHead ? 'default' : 'pointer',
+                            fontWeight: 900,
+                            fontSize: 12,
+                            border: showHeadToHead
+                                ? '1px solid rgba(255,255,255,0.12)'
+                                : '1px solid rgba(0,217,255,0.35)',
+                            background: showHeadToHead
+                                ? 'rgba(255,255,255,0.03)'
+                                : 'rgba(0,217,255,0.10)',
+                            color: showHeadToHead ? 'rgba(255,255,255,0.6)' : '#00d9ff',
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        ⚔️ Empresa vs Empresa (comparación completa)
+                    </button>
+                </div>
+            )}
+
+            {/* Tabla completa SOLO si se apretó el botón */}
+            {selectedComparable && showHeadToHead && (
+                <div style={cardStyle}>
+                    <h4 style={{
+                        fontSize: 13,
+                        fontWeight: 900,
+                        marginTop: 0,
                         marginBottom: 16,
                         paddingBottom: 12,
                         borderBottom: '1px solid rgba(255,255,255,0.1)'
                     }}>
-                        {item.ticker} vs {selectedComparable.ticker}
+                        {item.ticker} vs {selectedComparable.ticker} · Head-to-Head
                     </h4>
 
                     <div style={{ overflowX: 'auto' }}>
@@ -1343,6 +1431,87 @@ function ComparablesTab({ item, allCompanies }: { item: ScoredItem; allCompanies
         </div>
     );
 }
+
+function PrimaryMetric({
+    label,
+    aLabel,
+    bLabel,
+    aVal,
+    bVal,
+    format,
+    higherIsBetter,
+}: {
+    label: string;
+    aLabel: string;
+    bLabel: string;
+    aVal: number | null | undefined;
+    bVal: number | null | undefined;
+    format: (v: number | null | undefined) => string;
+    higherIsBetter: boolean;
+}) {
+    const aOk = isFiniteNumber(aVal);
+    const bOk = isFiniteNumber(bVal);
+
+    let winner: 'A' | 'B' | 'TIE' | null = null;
+    if (aOk && bOk) {
+        if (aVal === bVal) winner = 'TIE';
+        else if (higherIsBetter) winner = aVal! > bVal! ? 'A' : 'B';
+        else winner = aVal! < bVal! ? 'A' : 'B';
+    }
+
+    const badge = (who: 'A' | 'B') => ({
+        padding: '2px 8px',
+        borderRadius: 999,
+        fontSize: 10,
+        fontWeight: 900,
+        background: who === 'A' ? 'rgba(0,217,255,0.12)' : 'rgba(255,165,0,0.12)',
+        border: who === 'A' ? '1px solid rgba(0,217,255,0.25)' : '1px solid rgba(255,165,0,0.25)',
+        color: who === 'A' ? '#00d9ff' : '#ffa500',
+    });
+
+    return (
+        <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 10,
+            padding: 12
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 900, opacity: 0.85 }}>{label}</div>
+                {winner && winner !== 'TIE' && (
+                    <div style={badge(winner === 'A' ? 'A' : 'B')}>
+                        {winner === 'A' ? `${aLabel} ↑` : `${bLabel} ↑`}
+                    </div>
+                )}
+                {winner === 'TIE' && (
+                    <div style={{
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        fontSize: 10,
+                        fontWeight: 900,
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        color: 'rgba(255,255,255,0.7)',
+                    }}>
+                        =
+                    </div>
+                )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                    <div style={{ fontSize: 10, opacity: 0.6, marginBottom: 4 }}>{aLabel}</div>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: '#00d9ff' }}>{format(aVal)}</div>
+                </div>
+                <div>
+                    <div style={{ fontSize: 10, opacity: 0.6, marginBottom: 4 }}>{bLabel}</div>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: '#ffa500' }}>{format(bVal)}</div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 
 
 function ComparisonRow({
