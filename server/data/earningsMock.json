@@ -1,4 +1,51 @@
 {
+    "NVDA": {
+        "ticker": "NVDA",
+        "period": {
+            "period_id": "FY2025Q4",
+            "quarter_end_date": "2025-12-31",
+            "filing_date": "2026-01-30",
+            "currency": "USD",
+            "scaling": "million"
+        },
+        "sources": [
+            {
+                "doc_type": "earnings_release",
+                "url": "mock://NVDA-release"
+            }
+        ],
+        "reported": {
+            "income": {
+                "revenue": 22100,
+                "gross_profit": 16800,
+                "operating_income": 12400,
+                "net_income": 10200
+            },
+            "balance": {
+                "total_assets": 95000,
+                "current_assets": 52000,
+                "cash_and_equivalents": 26000,
+                "short_term_investments": 0
+            },
+            "cashflow": {
+                "operating_cash_flow": 11500,
+                "capex": -900
+            },
+            "shares": {
+                "diluted": 2500000,
+                "basic": 2480000
+            }
+        },
+        "adjusted": {
+            "income": {
+                "revenue": 22100,
+                "gross_profit": 16800,
+                "operating_income": 12400,
+                "net_income": 10200
+            }
+        },
+        "adjustments": []
+    },
     "AAPL": {
         "ticker": "AAPL",
         "period": {
