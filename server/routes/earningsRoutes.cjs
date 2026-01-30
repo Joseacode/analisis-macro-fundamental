@@ -3,6 +3,12 @@
 const path = require("path");
 const fs = require("fs/promises");
 
+const {
+    listFilingFiles,
+    pickBestExhibitDoc,
+    buildFilingFileUrl,
+} = require("../services/secFilingIndex.cjs");
+
 // ✅ Imports para SEC discovery y parsing
 const { discoverEarningsFromSEC } = require("../services/secEdgar.cjs");
 const { resolveEarningsSource } = require("../services/earningsSourceResolver.cjs");
@@ -213,7 +219,7 @@ function registerEarningsRoutes(app) {
         }
     });
 
-    // ✅ 4. NUEVO: XBRL parsing endpoint (inline XBRL extraction)
+    // ✅ 4. XBRL parsing endpoint (con exhibit discovery mejorado)
     app.get("/api/earnings/xbrl/:symbol", async (req, res) => {
         try {
             const sym = normalizeSymbol(req.params.symbol);
@@ -228,15 +234,26 @@ function registerEarningsRoutes(app) {
                 return res.status(404).json({ ok: false, ticker: sym, error: "No selected filing", resolved });
             }
 
-            const url = buildSecPrimaryDocUrl({
+            // ✅ 1) Listar todos los archivos del filing (index.json)
+            const files = await listFilingFiles({
                 cik: sec.cik,
                 accessionNumber: resolved.selected.accessionNumber,
-                primaryDocument: resolved.selected.primaryDocument,
+            });
+
+            const best = pickBestExhibitDoc(files);
+
+            // ✅ Fallback si no encontramos exhibit: usar primaryDocument
+            const filename = best?.name || resolved.selected.primaryDocument;
+
+            const url = buildFilingFileUrl({
+                cik: sec.cik,
+                accessionNumber: resolved.selected.accessionNumber,
+                filename,
             });
 
             const { text: html, contentType } = await fetchSecDocumentText(url, { timeoutMs: 20000 });
 
-            // Extraer bundle desde Inline XBRL
+            // ✅ Extraer bundle desde Inline XBRL del exhibit
             const bundle = extractBundleFromInlineXbrl({
                 ticker: sym,
                 filingDate: resolved.selected.filingDate,
@@ -250,6 +267,11 @@ function registerEarningsRoutes(app) {
                 ok: true,
                 ticker: sym,
                 selected: resolved.selected,
+                pickedDoc: {
+                    filename,
+                    pickedBy: best ? "index.json exhibit heuristic" : "primaryDocument fallback"
+                },
+                indexJson: files.indexUrl,
                 url,
                 contentType,
                 bundle: out,
