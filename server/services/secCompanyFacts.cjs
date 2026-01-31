@@ -95,16 +95,71 @@ async function fetchCompanyFacts(cik10) {
     return res.json();
 }
 
-function pickLatestFact(factObj, unitWanted /* "USD" | "shares" */) {
-    if (!factObj?.units) {
-        return { value: null, end: null, filed: null, form: null, fp: null, fy: null, unit: null };
+// =======================
+// ✅ HELPERS PARA PERIOD MATCHING
+// =======================
+
+function isGoodFp(fp) {
+    const s = String(fp || "").toUpperCase();
+    return ["Q1", "Q2", "Q3", "Q4", "FY"].includes(s);
+}
+
+function pickLatest(items) {
+    // items: [{ value, end, filed, form, fp, fy, unit }]
+    // Orden: filed desc, end desc
+    return [...items]
+        .filter((x) => x && x.value != null && x.end && x.filed)
+        .sort((a, b) => {
+            if (a.filed !== b.filed) return a.filed < b.filed ? 1 : -1;
+            if (a.end !== b.end) return a.end < b.end ? 1 : -1;
+            return 0;
+        })[0] || null;
+}
+
+function pickForPeriod(items, anchor) {
+    if (!anchor) return pickLatest(items);
+
+    const end = anchor.end;
+    const fy = anchor.fy;
+    const fp = anchor.fp;
+
+    // 1) match exact end + fy + fp
+    const exact = items.find(
+        (x) => x.end === end && x.fy === fy && String(x.fp).toUpperCase() === String(fp).toUpperCase()
+    );
+    if (exact) return exact;
+
+    // 2) match exact end
+    const sameEnd = items.find((x) => x.end === end);
+    if (sameEnd) return sameEnd;
+
+    // 3) fallback latest
+    return pickLatest(items);
+}
+
+function buildPeriodId(picked) {
+    const fy = picked?.fy;
+    const fp = picked?.fp;
+    const end = picked?.end;
+
+    if (typeof fy === "number" && fp) {
+        const cleanFp = String(fp).toUpperCase().replace(/[^A-Z0-9]/g, "");
+        return `FY${fy}${cleanFp}`;
     }
+    if (end) return `END_${end}`;
+    return null;
+}
+
+// =======================
+// ✅ EXTRACT FACTS FROM UNITS
+// =======================
+
+function extractFactItems(factObj, unitWanted) {
+    if (!factObj?.units) return [];
 
     const units = factObj.units;
     const unitKeys = Object.keys(units);
-    if (!unitKeys.length) {
-        return { value: null, end: null, filed: null, form: null, fp: null, fy: null, unit: null };
-    }
+    if (!unitKeys.length) return [];
 
     let pickUnitKey = null;
 
@@ -121,9 +176,7 @@ function pickLatestFact(factObj, unitWanted /* "USD" | "shares" */) {
     }
 
     const arr = Array.isArray(units[pickUnitKey]) ? units[pickUnitKey] : [];
-    if (!arr.length) {
-        return { value: null, end: null, filed: null, form: null, fp: null, fy: null, unit: pickUnitKey };
-    }
+    if (!arr.length) return [];
 
     const okForms = new Set(["10-Q", "10-K", "20-F", "40-F", "6-K", "8-K"]);
 
@@ -132,60 +185,111 @@ function pickLatestFact(factObj, unitWanted /* "USD" | "shares" */) {
         .filter((x) => okForms.has(String(x.form || "")));
 
     const list = base.length ? base : arr.filter((x) => x && typeof x.val === "number" && x.end);
-    if (!list.length) {
-        return { value: null, end: null, filed: null, form: null, fp: null, fy: null, unit: pickUnitKey };
-    }
 
-    list.sort((a, b) => {
-        const ae = String(a.end);
-        const be = String(b.end);
-        if (ae !== be) return be.localeCompare(ae);
-        const af = String(a.filed || "");
-        const bf = String(b.filed || "");
-        return bf.localeCompare(af);
-    });
-
-    const top = list[0];
-    return {
-        value: top.val,
-        end: top.end ?? null,
-        filed: top.filed ?? null,
-        form: top.form ?? null,
-        fp: top.fp ?? null,
-        fy: top.fy ?? null,
+    return list.map((item) => ({
+        value: item.val,
+        end: item.end ?? null,
+        filed: item.filed ?? null,
+        form: item.form ?? null,
+        fp: item.fp ?? null,
+        fy: item.fy ?? null,
         unit: pickUnitKey,
-    };
+    }));
 }
+
+// =======================
+// ✅ EXTRACT BUNDLE (FIXED)
+// =======================
 
 function extractBundleFromCompanyFacts(ticker, companyFactsJson) {
     const facts = companyFactsJson?.facts?.["us-gaap"] ?? {};
 
-    // Core tags (MVP)
-    const revenues = pickLatestFact(facts.Revenues, "USD");
-    const grossProfit = pickLatestFact(facts.GrossProfit, "USD");
-    const opIncome = pickLatestFact(facts.OperatingIncomeLoss, "USD");
-    const netIncome = pickLatestFact(facts.NetIncomeLoss, "USD");
+    // ✅ PASO 1: Buscar Revenue en múltiples tags (fallback robusto)
+    const revenueItems =
+        extractFactItems(facts.Revenues, "USD").length > 0 ? extractFactItems(facts.Revenues, "USD") :
+            extractFactItems(facts.RevenueFromContractWithCustomerExcludingAssessedTax, "USD").length > 0 ? extractFactItems(facts.RevenueFromContractWithCustomerExcludingAssessedTax, "USD") :
+                extractFactItems(facts.SalesRevenueNet, "USD").length > 0 ? extractFactItems(facts.SalesRevenueNet, "USD") :
+                    extractFactItems(facts.RevenueFromContractWithCustomerIncludingAssessedTax, "USD").length > 0 ? extractFactItems(facts.RevenueFromContractWithCustomerIncludingAssessedTax, "USD") :
+                        [];
 
-    const ocf = pickLatestFact(facts.NetCashProvidedByUsedInOperatingActivities, "USD");
-    const capex = pickLatestFact(facts.PaymentsToAcquirePropertyPlantAndEquipment, "USD");
+    // Si no hay revenue, intentar con net income como anchor
+    let anchorItems = revenueItems.length > 0 ? revenueItems : extractFactItems(facts.NetIncomeLoss, "USD");
 
-    const assets = pickLatestFact(facts.Assets, "USD");
-    const assetsCurrent = pickLatestFact(facts.AssetsCurrent, "USD");
-    const cash = pickLatestFact(facts.CashAndCashEquivalentsAtCarryingValue, "USD");
-    const stInv = pickLatestFact(facts.AvailableForSaleSecuritiesCurrent, "USD"); // proxy ok
+    const anchor = pickLatest(anchorItems);
 
-    const dilutedShares = pickLatestFact(facts.WeightedAverageNumberOfDilutedSharesOutstanding, "shares");
-    const basicShares = pickLatestFact(facts.WeightedAverageNumberOfSharesOutstandingBasic, "shares");
+    if (!anchor) {
+        // No hay revenue ni net income, bundle vacío
+        return {
+            ticker: normalizeSymbol(ticker),
+            period: { period_id: null, quarter_end_date: null, filing_date: null, currency: "USD", scaling: "raw" },
+            sources: [{ doc_type: "sec_companyfacts", url: `https://data.sec.gov/api/xbrl/companyfacts/CIK${padCik10(companyFactsJson?.cik)}.json` }],
+            reported: { income: {}, balance: {}, cashflow: {}, shares: {} },
+            adjusted: { income: {} },
+            adjustments: [],
+            _debug: { error: "No revenue or net income data found" },
+        };
+    }
 
-    const periodEnd = revenues.end || netIncome.end || assets.end || null;
-    const filed = revenues.filed || netIncome.filed || assets.filed || null;
+    // ✅ PASO 2: Extraer items de cada concepto
+    const grossProfitItems = extractFactItems(facts.GrossProfit, "USD");
+    const costOfRevenueItems = extractFactItems(facts.CostOfRevenue, "USD");
+    const opIncomeItems = extractFactItems(facts.OperatingIncomeLoss, "USD");
+    const netIncomeItems = extractFactItems(facts.NetIncomeLoss, "USD");
 
+    const ocfItems = extractFactItems(facts.NetCashProvidedByUsedInOperatingActivities, "USD");
+    const capexItems = extractFactItems(facts.PaymentsToAcquirePropertyPlantAndEquipment, "USD");
+
+    const assetsItems = extractFactItems(facts.Assets, "USD");
+    const assetsCurrentItems = extractFactItems(facts.AssetsCurrent, "USD");
+    const cashItems = extractFactItems(facts.CashAndCashEquivalentsAtCarryingValue, "USD");
+    const stInvItems = extractFactItems(facts.AvailableForSaleSecuritiesCurrent, "USD");
+
+    const dilutedSharesItems = extractFactItems(facts.WeightedAverageNumberOfDilutedSharesOutstanding, "shares");
+    const basicSharesItems = extractFactItems(facts.WeightedAverageNumberOfSharesOutstandingBasic, "shares");
+
+    // ✅ PASO 3: Pick todos los otros facts para el MISMO período
+    const revenues = anchor;
+    let grossProfit = pickForPeriod(grossProfitItems, anchor);
+
+    // Fallback: calcular gross profit si falta
+    if (!grossProfit || grossProfit.value == null) {
+        const cost = pickForPeriod(costOfRevenueItems, anchor);
+        if (revenues?.value != null && cost?.value != null) {
+            grossProfit = {
+                value: revenues.value - cost.value,
+                end: revenues.end,
+                filed: revenues.filed,
+                form: revenues.form,
+                fp: revenues.fp,
+                fy: revenues.fy,
+                unit: "USD",
+            };
+        }
+    }
+
+    const opIncome = pickForPeriod(opIncomeItems, anchor);
+    const netIncome = pickForPeriod(netIncomeItems, anchor);
+
+    const ocf = pickForPeriod(ocfItems, anchor);
+    const capexAbs = pickForPeriod(capexItems, anchor);
+    // Normalización: capex negativo
+    const capex = capexAbs?.value != null ? { ...capexAbs, value: -Math.abs(capexAbs.value) } : capexAbs;
+
+    const assets = pickForPeriod(assetsItems, anchor);
+    const assetsCurrent = pickForPeriod(assetsCurrentItems, anchor);
+    const cash = pickForPeriod(cashItems, anchor);
+    const stInv = pickForPeriod(stInvItems, anchor);
+
+    const dilutedShares = pickForPeriod(dilutedSharesItems, anchor);
+    const basicShares = pickForPeriod(basicSharesItems, anchor);
+
+    // ✅ PASO 4: Build bundle
     return {
         ticker: normalizeSymbol(ticker),
         period: {
-            period_id: periodEnd ? `END_${periodEnd}` : null,
-            quarter_end_date: periodEnd,
-            filing_date: filed,
+            period_id: buildPeriodId(anchor),
+            quarter_end_date: anchor.end,
+            filing_date: anchor.filed,
             currency: "USD",
             scaling: "raw",
         },
@@ -197,37 +301,38 @@ function extractBundleFromCompanyFacts(ticker, companyFactsJson) {
         ],
         reported: {
             income: {
-                revenue: revenues.value ?? null,
-                gross_profit: grossProfit.value ?? null,
-                operating_income: opIncome.value ?? null,
-                net_income: netIncome.value ?? null,
+                revenue: revenues?.value ?? null,
+                gross_profit: grossProfit?.value ?? null,
+                operating_income: opIncome?.value ?? null,
+                net_income: netIncome?.value ?? null,
             },
             balance: {
-                total_assets: assets.value ?? null,
-                current_assets: assetsCurrent.value ?? null,
-                cash_and_equivalents: cash.value ?? null,
-                short_term_investments: stInv.value ?? null,
+                total_assets: assets?.value ?? null,
+                current_assets: assetsCurrent?.value ?? null,
+                cash_and_equivalents: cash?.value ?? null,
+                short_term_investments: stInv?.value ?? null,
             },
             cashflow: {
-                operating_cash_flow: ocf.value ?? null,
-                capex: capex.value ?? null,
+                operating_cash_flow: ocf?.value ?? null,
+                capex: capex?.value ?? null,
             },
             shares: {
-                diluted: dilutedShares.value ?? null,
-                basic: basicShares.value ?? null,
+                diluted: dilutedShares?.value ?? null,
+                basic: basicShares?.value ?? null,
             },
         },
         adjusted: {
             income: {
-                revenue: revenues.value ?? null,
-                gross_profit: grossProfit.value ?? null,
-                operating_income: opIncome.value ?? null,
-                net_income: netIncome.value ?? null,
+                revenue: revenues?.value ?? null,
+                gross_profit: grossProfit?.value ?? null,
+                operating_income: opIncome?.value ?? null,
+                net_income: netIncome?.value ?? null,
             },
         },
         adjustments: [],
         _debug: {
-            picked: { revenues, netIncome, ocf, capex, dilutedShares },
+            targetPeriod: { end: anchor.end, fy: anchor.fy, fp: anchor.fp, form: anchor.form },
+            picked: { revenues, grossProfit, netIncome, ocf, capex, dilutedShares },
         },
     };
 }

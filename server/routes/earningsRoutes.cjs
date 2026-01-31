@@ -14,13 +14,11 @@ const { discoverEarningsFromSEC } = require("../services/secEdgar.cjs");
 const { resolveEarningsSource } = require("../services/earningsSourceResolver.cjs");
 const { buildSecPrimaryDocUrl, fetchSecDocumentText } = require("../services/secArchives.cjs");
 const { extractBundleFromInlineXbrl } = require("../services/inlineXbrlParser.cjs");
-
 const {
     resolveCikFromTicker,
     fetchCompanyFacts,
     extractBundleFromCompanyFacts
 } = require("../services/secCompanyFacts.cjs");
-
 
 // Lee JSON mock una vez por request (simple). Luego optimizamos con cache en memoria.
 const MOCK_FILE = path.resolve(__dirname, "..", "data", "earningsMock.json");
@@ -34,8 +32,6 @@ async function readMock() {
 // ✅ HELPERS UTILS
 // ========================================
 
-// core metrics (MVP) en JS para no meternos aún con TS en el server.
-// Después lo portamos/compartimos si querés.
 function safeNum(v) {
     return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
@@ -62,33 +58,28 @@ function fmtX(n) {
     return `${round2(n).toFixed(2)}x`;
 }
 
-// ✅ Helper: FCF robusto (extraído como función independiente)
 function computeFCF(ocf, capex) {
     if (ocf == null || capex == null) return null;
-    // Si capex viene negativo (común), FCF = OCF + capex
-    // Si capex es positivo (raro), FCF = OCF - capex
     return capex < 0 ? ocf + capex : ocf - capex;
 }
 
 // ========================================
-// ✅ NUEVOS HELPERS: Detección y parsing HTML
+// ✅ HELPERS: Detección y parsing HTML
 // ========================================
 
 function hasInlineXbrl(html) {
     if (!html) return false;
-    // ix:nonFraction / ix:nonNumeric es lo más típico
-    return /<ix:(nonfraction|nonnumeric)\b/i.test(html);
+    // ✅ Buscar tags ix: en general (case insensitive)
+    return /<ix:[a-z]/i.test(html);
 }
 
-// ultra simple: detecta si hay tablas
 function hasHtmlTables(html) {
     if (!html) return false;
     return /<table\b/i.test(html);
 }
 
-// VERY MVP: intenta sacar números de un "Condensed Consolidated Statements of Operations"
-// usando keywords (esto lo refinamos luego)
 function extractBasicFromHtml(html) {
+    // ✅ Extraer el texto limpio
     const text = String(html)
         .replace(/<script[\s\S]*?<\/script>/gi, " ")
         .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -96,35 +87,95 @@ function extractBasicFromHtml(html) {
         .replace(/\s+/g, " ")
         .trim();
 
-    // helpers para parsear valores tipo 62,000 o (1,234)
-    const parseMoney = (s) => {
+    const parseMoney = (s, unit = "million") => {
         if (!s) return null;
-        const m = String(s).match(/-?\(?\d{1,3}(?:,\d{3})*(?:\.\d+)?\)?/);
+        // ✅ Buscar números con formato: "81.3 billion" o "69,628" o "69628"
+        const m = String(s).match(/-?\(?\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\)?/);
         if (!m) return null;
-        let v = m[0];
-        const neg = v.includes("(") && v.includes(")");
-        v = v.replace(/[(),]/g, "");
-        const n = Number(v);
+        let v = m[1];
+        const neg = s.includes("(") && s.includes(")");
+        v = v.replace(/,/g, "");
+        let n = Number(v);
         if (!Number.isFinite(n)) return null;
+
+        // ✅ Convertir billions a millions
+        if (unit === "billion") {
+            n = n * 1000;
+        }
+
         return neg ? -n : n;
     };
 
-    // keywords típicos (muy MVP)
-    const revenue =
-        parseMoney((text.match(/total revenue[s]?\s+([\(\)\d,\.]+)/i) || [])[1]) ??
-        parseMoney((text.match(/revenue[s]?\s+([\(\)\d,\.]+)/i) || [])[1]);
+    // ✅ Extraer Revenue
+    let revenue = null;
+    const revenueMatch = text.match(/revenue\s+was\s+\$\s*([\d.]+)\s+billion/i);
+    if (revenueMatch) {
+        revenue = parseMoney(revenueMatch[1], "billion");
+    } else {
+        // Fallback: buscar formato con millones
+        const revPatterns = [
+            /revenue\s+(?:\$\s*)?(\d{1,3}(?:,\d{3})+|\d{4,})/i,
+            /total\s+revenue\s+(?:\$\s*)?(\d{1,3}(?:,\d{3})+|\d{4,})/i,
+        ];
+        for (const pattern of revPatterns) {
+            const match = text.match(pattern);
+            if (match) {
+                revenue = parseMoney(match[1], "million");
+                if (revenue) break;
+            }
+        }
+    }
 
-    const netIncome =
-        parseMoney((text.match(/net income\s+([\(\)\d,\.]+)/i) || [])[1]) ??
-        parseMoney((text.match(/net earnings\s+([\(\)\d,\.]+)/i) || [])[1]);
+    // ✅ Extraer Operating Income
+    let opIncome = null;
+    const opMatch = text.match(/operating\s+income\s+was\s+\$\s*([\d.]+)\s+billion/i);
+    if (opMatch) {
+        opIncome = parseMoney(opMatch[1], "billion");
+    } else {
+        const opPatterns = [
+            /operating\s+income\s+(?:\$\s*)?(\d{1,3}(?:,\d{3})+|\d{4,})/i,
+            /income\s+from\s+operations\s+(?:\$\s*)?(\d{1,3}(?:,\d{3})+|\d{4,})/i,
+        ];
+        for (const pattern of opPatterns) {
+            const match = text.match(pattern);
+            if (match) {
+                opIncome = parseMoney(match[1], "million");
+                if (opIncome) break;
+            }
+        }
+    }
 
-    // devolvemos un bundle parcial (vamos completando)
+    // ✅ Extraer Net Income (usar non-GAAP si está disponible, sino GAAP)
+    let netIncome = null;
+    const netNonGaapMatch = text.match(/net\s+income\s+on\s+a\s+non-GAAP\s+basis\s+was\s+\$\s*([\d.]+)\s+billion/i);
+    const netGaapMatch = text.match(/net\s+income\s+on\s+a\s+GAAP\s+basis\s+was\s+\$\s*([\d.]+)\s+billion/i);
+
+    if (netNonGaapMatch) {
+        netIncome = parseMoney(netNonGaapMatch[1], "billion");
+    } else if (netGaapMatch) {
+        netIncome = parseMoney(netGaapMatch[1], "billion");
+    } else {
+        const netPatterns = [
+            /net\s+income\s+(?:\$\s*)?(\d{1,3}(?:,\d{3})+|\d{4,})/i,
+            /net\s+earnings\s+(?:\$\s*)?(\d{1,3}(?:,\d{3})+|\d{4,})/i,
+        ];
+        for (const pattern of netPatterns) {
+            const match = text.match(pattern);
+            if (match) {
+                netIncome = parseMoney(match[1], "million");
+                if (netIncome) break;
+            }
+        }
+    }
+
+    console.log(`📋 HTML extraction: revenue=${revenue}, netIncome=${netIncome}, opIncome=${opIncome}`);
+
     return {
         income: {
             revenue: revenue ?? null,
             net_income: netIncome ?? null,
             gross_profit: null,
-            operating_income: null,
+            operating_income: opIncome ?? null,
         },
     };
 }
@@ -145,7 +196,6 @@ function computeDerived(bundle) {
     const ocf = safeNum(cf.operating_cash_flow);
     const capex = safeNum(cf.capex);
 
-    // ✅ Usar helper computeFCF para consistencia
     const fcf = safeNum(cf.free_cash_flow) ?? computeFCF(ocf, capex);
 
     const grossMargin = pct(grossProfit, revenue);
@@ -162,20 +212,17 @@ function computeDerived(bundle) {
         { key: "ocf", label: "Operating Cash Flow (OCF)", category: "Quality", unit: "USD", value_reported: ocf, value_adjusted: null, trend_qoq: null, trend_yoy: null },
         { key: "capex", label: "Capex", category: "Quality", unit: "USD", value_reported: capex, value_adjusted: null, trend_qoq: null, trend_yoy: null },
 
-        // ✅ ahora FCF sale coherente usando computeFCF
         { key: "fcf", label: "Free Cash Flow (FCF)", category: "Quality", unit: "USD", value_reported: fcf, value_adjusted: null, trend_qoq: null, trend_yoy: null },
         { key: "fcf_margin", label: "FCF Margin", category: "Quality", unit: "%", value_reported: fcfMargin, value_adjusted: null, trend_qoq: null, trend_yoy: null },
         { key: "fcf_to_ni", label: "FCF / Net Income", category: "Quality", unit: "x", value_reported: fcfToNI, value_adjusted: null, trend_qoq: null, trend_yoy: null }
     ];
 
-    // ✅ Highlights MVP (sin humo)
     const highlights = [];
     if (grossMargin != null) highlights.push(`Gross margin: ${fmtPct(grossMargin)}`);
     if (opMargin != null) highlights.push(`Operating margin: ${fmtPct(opMargin)}`);
     if (fcfMargin != null) highlights.push(`FCF margin: ${fmtPct(fcfMargin)}`);
     if (fcfToNI != null) highlights.push(`FCF / NI: ${fmtX(fcfToNI)}`);
 
-    // señal rápida de calidad (simple)
     if (fcfToNI != null) {
         if (fcfToNI >= 1.1) highlights.push("Earnings quality: strong cash conversion");
         else if (fcfToNI >= 0.8) highlights.push("Earnings quality: ok cash conversion");
@@ -202,7 +249,7 @@ function normalizeSymbol(sym) {
 function registerEarningsRoutes(app) {
     console.log("✓ Rutas Earnings registradas (MOCK + SEC Discovery + XBRL)");
 
-    // ✅ 1. Debug endpoint (más específico primero)
+    // ✅ 1. Debug endpoint
     app.get("/api/earnings/_debug", async (_req, res) => {
         try {
             const data = await readMock();
@@ -217,7 +264,7 @@ function registerEarningsRoutes(app) {
         }
     });
 
-    // ✅ 2. Source discovery endpoint (SEC EDGAR)
+    // ✅ 2. Source discovery endpoint
     app.get("/api/earnings/source/:symbol", async (req, res) => {
         try {
             const sym = normalizeSymbol(req.params.symbol);
@@ -274,7 +321,6 @@ function registerEarningsRoutes(app) {
 
             const { text, contentType } = await fetchSecDocumentText(url, { timeoutMs: 15000 });
 
-            // Preview para que no explote la respuesta
             const previewLen = Math.max(500, Math.min(8000, Number(req.query.previewLen ?? 4000)));
             const preview = text.slice(0, previewLen);
 
@@ -297,7 +343,7 @@ function registerEarningsRoutes(app) {
         }
     });
 
-    // ✅ 4. XBRL parsing endpoint (Company Facts API + fallbacks)
+    // ✅ 4. XBRL parsing endpoint (SIN Company Facts API)
     app.get("/api/earnings/xbrl/:symbol", async (req, res) => {
         try {
             const sym = normalizeSymbol(req.params.symbol);
@@ -312,34 +358,9 @@ function registerEarningsRoutes(app) {
                 return res.status(404).json({ ok: false, ticker: sym, error: "No selected filing", resolved });
             }
 
-            // ✅ ESTRATEGIA 1: Company Facts API (MEJOR - datos pre-procesados por SEC)
-            try {
-                console.log(`🔍 Attempting Company Facts API for ${sym}...`);
-                const cik10 = String(sec.cik).padStart(10, "0");
-                const companyFacts = await fetchCompanyFacts(cik10);
-                const bundle = extractBundleFromCompanyFacts(sym, companyFacts);
+            console.log(`🔄 Parsing document for ${sym}...`);
 
-                // Validar que sacamos al menos revenue o net_income
-                if (bundle.reported.income.revenue || bundle.reported.income.net_income) {
-                    console.log(`✅ Company Facts API success for ${sym}`);
-                    const out = computeDerived(bundle);
-                    return res.json({
-                        ok: true,
-                        ticker: sym,
-                        selected: resolved.selected,
-                        strategy: "company_facts_api",
-                        bundle: out,
-                    });
-                } else {
-                    console.log(`⚠️ Company Facts API returned empty data for ${sym}`);
-                }
-            } catch (apiErr) {
-                console.warn(`⚠️ Company Facts API failed for ${sym}:`, apiErr.message);
-            }
-
-            // ✅ ESTRATEGIA 2-4: Fallback a parsing de documentos HTML/XBRL
-            console.log(`🔄 Falling back to document parsing for ${sym}...`);
-
+            // ✅ SIEMPRE buscar exhibits (8-K earnings están en Exhibit 99.1)
             const files = await listFilingFiles({
                 cik: sec.cik,
                 accessionNumber: resolved.selected.accessionNumber,
@@ -347,6 +368,9 @@ function registerEarningsRoutes(app) {
 
             const best = pickBestExhibitDoc(files);
             const filename = best?.name || resolved.selected.primaryDocument;
+            const pickedBy = best ? "index.json exhibit heuristic" : "primaryDocument fallback";
+
+            console.log(`📄 Using ${pickedBy}: ${filename}`);
 
             const url = buildFilingFileUrl({
                 cik: sec.cik,
@@ -360,7 +384,6 @@ function registerEarningsRoutes(app) {
             let strategy;
 
             if (hasInlineXbrl(html)) {
-                // ESTRATEGIA 2: Inline XBRL parsing
                 console.log(`📊 Using Inline XBRL parsing for ${sym}`);
                 bundle = extractBundleFromInlineXbrl({
                     ticker: sym,
@@ -369,7 +392,6 @@ function registerEarningsRoutes(app) {
                 });
                 strategy = "inline_xbrl_parsing";
             } else if (hasHtmlTables(html)) {
-                // ESTRATEGIA 3: HTML tables regex parsing
                 console.log(`📋 Using HTML tables parsing for ${sym}`);
                 const basic = extractBasicFromHtml(html);
 
@@ -387,7 +409,7 @@ function registerEarningsRoutes(app) {
                         income: {
                             revenue: basic.income.revenue,
                             gross_profit: null,
-                            operating_income: null,
+                            operating_income: basic.income.operating_income,
                             net_income: basic.income.net_income,
                         },
                         balance: {
@@ -412,7 +434,6 @@ function registerEarningsRoutes(app) {
                 };
                 strategy = "html_tables_regex";
             } else {
-                // ESTRATEGIA 4: Bundle vacío
                 console.log(`❌ No parsing strategy worked for ${sym}`);
                 bundle = {
                     ticker: sym,
@@ -458,7 +479,7 @@ function registerEarningsRoutes(app) {
                 strategy,
                 pickedDoc: {
                     filename,
-                    pickedBy: best ? "index.json exhibit heuristic" : "primaryDocument fallback"
+                    pickedBy
                 },
                 indexJson: files.indexUrl,
                 url,
@@ -475,13 +496,11 @@ function registerEarningsRoutes(app) {
         }
     });
 
-
-    // ✅ 5. SEC Company Facts API endpoint (datos reales XBRL del SEC)
+    // ✅ 5. SEC Company Facts API endpoint
     app.get("/api/earnings/sec/:symbol", async (req, res) => {
         try {
             const sym = normalizeSymbol(req.params.symbol);
 
-            // ✅ Primero intentar con discoverEarningsFromSEC para obtener CIK
             const sec = await discoverEarningsFromSEC(sym);
 
             if (!sec?.ok || !sec?.cik) {
@@ -495,7 +514,6 @@ function registerEarningsRoutes(app) {
             const cik10 = String(sec.cik).padStart(10, "0");
             const cf = await fetchCompanyFacts(cik10);
 
-            // cf.cik in response is numeric; keep it for source URL
             cf.cik = cik10;
 
             const bundle = extractBundleFromCompanyFacts(sym, cf);
@@ -507,7 +525,6 @@ function registerEarningsRoutes(app) {
             res.status(500).json({ ok: false, error: String(e?.message ?? e) });
         }
     });
-
 
     // ✅ 6. Mock data endpoint (catch-all al final)
     app.get("/api/earnings/:symbol", async (req, res) => {
@@ -524,7 +541,6 @@ function registerEarningsRoutes(app) {
                 });
             }
 
-            // MVP: computed derived metrics
             const out = computeDerived(bundle);
             res.json(out);
         } catch (e) {

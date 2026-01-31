@@ -106,14 +106,35 @@ function pickLatestDurationEndDate(ctxMap) {
 
 /**
  * Utility: filtrar facts por nombre(s) y por endDate seleccionado
+ * ✅ NUEVO: Busca con namespace flexible (us-gaap: o custom como msft:)
  */
 function findFactNumber(facts, ctxMap, names, periodEnd) {
     const nameSet = new Set(names.map(String));
 
+    // ✅ Crear variantes con diferentes namespaces
+    const allVariants = new Set();
+    for (const name of nameSet) {
+        allVariants.add(name); // us-gaap:Revenues
+
+        // Si tiene namespace, agregar versión sin namespace
+        if (name.includes(':')) {
+            const [ns, local] = name.split(':');
+            allVariants.add(local); // Revenues
+            allVariants.add(`msft:${local}`); // msft:Revenues
+            allVariants.add(`us-gaap:${local}`); // us-gaap:Revenues (por si acaso)
+        }
+    }
+
     // 1) Primero: duration con endDate == periodEnd
     for (const f of facts) {
-        if (!f.name || !nameSet.has(f.name)) continue;
+        if (!f.name) continue;
         if (f.num == null) continue;
+
+        // ✅ Match flexible: buscar por local name o full name
+        const localName = f.name.includes(':') ? f.name.split(':')[1] : f.name;
+        const matches = allVariants.has(f.name) || allVariants.has(localName);
+
+        if (!matches) continue;
 
         const ctx = f.contextRef ? ctxMap.get(f.contextRef) : null;
         if (ctx?.kind === "duration" && ctx.endDate === periodEnd) return f.num;
@@ -121,8 +142,13 @@ function findFactNumber(facts, ctxMap, names, periodEnd) {
 
     // 2) Fallback: cualquier duration (la más reciente que aparezca)
     for (const f of facts) {
-        if (!f.name || !nameSet.has(f.name)) continue;
+        if (!f.name) continue;
         if (f.num == null) continue;
+
+        const localName = f.name.includes(':') ? f.name.split(':')[1] : f.name;
+        const matches = allVariants.has(f.name) || allVariants.has(localName);
+
+        if (!matches) continue;
 
         const ctx = f.contextRef ? ctxMap.get(f.contextRef) : null;
         if (ctx?.kind === "duration") return f.num;
@@ -134,10 +160,28 @@ function findFactNumber(facts, ctxMap, names, periodEnd) {
 function findFactInstantNumber(facts, ctxMap, names, instantDate) {
     const nameSet = new Set(names.map(String));
 
+    // ✅ Crear variantes con diferentes namespaces
+    const allVariants = new Set();
+    for (const name of nameSet) {
+        allVariants.add(name);
+
+        if (name.includes(':')) {
+            const [ns, local] = name.split(':');
+            allVariants.add(local);
+            allVariants.add(`msft:${local}`);
+            allVariants.add(`us-gaap:${local}`);
+        }
+    }
+
     // 1) instant exacto
     for (const f of facts) {
-        if (!f.name || !nameSet.has(f.name)) continue;
+        if (!f.name) continue;
         if (f.num == null) continue;
+
+        const localName = f.name.includes(':') ? f.name.split(':')[1] : f.name;
+        const matches = allVariants.has(f.name) || allVariants.has(localName);
+
+        if (!matches) continue;
 
         const ctx = f.contextRef ? ctxMap.get(f.contextRef) : null;
         if (ctx?.kind === "instant" && ctx.instant === instantDate) return f.num;
@@ -145,8 +189,13 @@ function findFactInstantNumber(facts, ctxMap, names, instantDate) {
 
     // 2) fallback: cualquier instant
     for (const f of facts) {
-        if (!f.name || !nameSet.has(f.name)) continue;
+        if (!f.name) continue;
         if (f.num == null) continue;
+
+        const localName = f.name.includes(':') ? f.name.split(':')[1] : f.name;
+        const matches = allVariants.has(f.name) || allVariants.has(localName);
+
+        if (!matches) continue;
 
         const ctx = f.contextRef ? ctxMap.get(f.contextRef) : null;
         if (ctx?.kind === "instant") return f.num;
@@ -180,14 +229,13 @@ function normalizeSharesToThousands(x) {
 function extractBundleFromInlineXbrl({ ticker, filingDate, html }) {
     const ctxMap = parseContexts(html);
     const facts = parseFacts(html);
-
     const periodEnd = pickLatestDurationEndDate(ctxMap);
 
     // Income statement
-    const revenueRaw = findFactNumber(facts, ctxMap, ["us-gaap:Revenues", "us-gaap:SalesRevenueNet"], periodEnd);
+    const revenueRaw = findFactNumber(facts, ctxMap, ["us-gaap:Revenues", "us-gaap:SalesRevenueNet", "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax"], periodEnd);
     const grossProfitRaw = findFactNumber(facts, ctxMap, ["us-gaap:GrossProfit"], periodEnd);
     const opIncomeRaw = findFactNumber(facts, ctxMap, ["us-gaap:OperatingIncomeLoss"], periodEnd);
-    const netIncomeRaw = findFactNumber(facts, ctxMap, ["us-gaap:NetIncomeLoss"], periodEnd);
+    const netIncomeRaw = findFactNumber(facts, ctxMap, ["us-gaap:NetIncomeLoss", "us-gaap:ProfitLoss"], periodEnd);
 
     // Cash flow
     const ocfRaw = findFactNumber(
@@ -227,7 +275,7 @@ function extractBundleFromInlineXbrl({ ticker, filingDate, html }) {
         ? findFactInstantNumber(
             facts,
             ctxMap,
-            ["us-gaap:CashAndCashEquivalentsAtCarryingValue"],
+            ["us-gaap:CashAndCashEquivalentsAtCarryingValue", "us-gaap:Cash"],
             periodEnd
         )
         : null;
@@ -296,7 +344,7 @@ function extractBundleFromInlineXbrl({ ticker, filingDate, html }) {
             },
             cashflow: {
                 operating_cash_flow: ocf.value,
-                capex: capex.value, // ojo: puede venir negativo o positivo según tag/empresa
+                capex: capex.value,
             },
             shares: {
                 diluted: dSh.value,
