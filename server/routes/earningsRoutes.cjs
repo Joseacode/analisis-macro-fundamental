@@ -15,6 +15,13 @@ const { resolveEarningsSource } = require("../services/earningsSourceResolver.cj
 const { buildSecPrimaryDocUrl, fetchSecDocumentText } = require("../services/secArchives.cjs");
 const { extractBundleFromInlineXbrl } = require("../services/inlineXbrlParser.cjs");
 
+const {
+    resolveCikFromTicker,
+    fetchCompanyFacts,
+    extractBundleFromCompanyFacts
+} = require("../services/secCompanyFacts.cjs");
+
+
 // Lee JSON mock una vez por request (simple). Luego optimizamos con cache en memoria.
 const MOCK_FILE = path.resolve(__dirname, "..", "data", "earningsMock.json");
 
@@ -22,6 +29,10 @@ async function readMock() {
     const txt = await fs.readFile(MOCK_FILE, "utf-8");
     return JSON.parse(txt);
 }
+
+// ========================================
+// ✅ HELPERS UTILS
+// ========================================
 
 // core metrics (MVP) en JS para no meternos aún con TS en el server.
 // Después lo portamos/compartimos si querés.
@@ -58,6 +69,69 @@ function computeFCF(ocf, capex) {
     // Si capex es positivo (raro), FCF = OCF - capex
     return capex < 0 ? ocf + capex : ocf - capex;
 }
+
+// ========================================
+// ✅ NUEVOS HELPERS: Detección y parsing HTML
+// ========================================
+
+function hasInlineXbrl(html) {
+    if (!html) return false;
+    // ix:nonFraction / ix:nonNumeric es lo más típico
+    return /<ix:(nonfraction|nonnumeric)\b/i.test(html);
+}
+
+// ultra simple: detecta si hay tablas
+function hasHtmlTables(html) {
+    if (!html) return false;
+    return /<table\b/i.test(html);
+}
+
+// VERY MVP: intenta sacar números de un "Condensed Consolidated Statements of Operations"
+// usando keywords (esto lo refinamos luego)
+function extractBasicFromHtml(html) {
+    const text = String(html)
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    // helpers para parsear valores tipo 62,000 o (1,234)
+    const parseMoney = (s) => {
+        if (!s) return null;
+        const m = String(s).match(/-?\(?\d{1,3}(?:,\d{3})*(?:\.\d+)?\)?/);
+        if (!m) return null;
+        let v = m[0];
+        const neg = v.includes("(") && v.includes(")");
+        v = v.replace(/[(),]/g, "");
+        const n = Number(v);
+        if (!Number.isFinite(n)) return null;
+        return neg ? -n : n;
+    };
+
+    // keywords típicos (muy MVP)
+    const revenue =
+        parseMoney((text.match(/total revenue[s]?\s+([\(\)\d,\.]+)/i) || [])[1]) ??
+        parseMoney((text.match(/revenue[s]?\s+([\(\)\d,\.]+)/i) || [])[1]);
+
+    const netIncome =
+        parseMoney((text.match(/net income\s+([\(\)\d,\.]+)/i) || [])[1]) ??
+        parseMoney((text.match(/net earnings\s+([\(\)\d,\.]+)/i) || [])[1]);
+
+    // devolvemos un bundle parcial (vamos completando)
+    return {
+        income: {
+            revenue: revenue ?? null,
+            net_income: netIncome ?? null,
+            gross_profit: null,
+            operating_income: null,
+        },
+    };
+}
+
+// ========================================
+// ✅ COMPUTE DERIVED
+// ========================================
 
 function computeDerived(bundle) {
     const inc = bundle?.reported?.income ?? {};
@@ -120,6 +194,10 @@ function computeDerived(bundle) {
 function normalizeSymbol(sym) {
     return String(sym ?? "").trim().toUpperCase().replace(/\./g, "-");
 }
+
+// ========================================
+// ✅ ROUTES
+// ========================================
 
 function registerEarningsRoutes(app) {
     console.log("✓ Rutas Earnings registradas (MOCK + SEC Discovery + XBRL)");
@@ -219,7 +297,7 @@ function registerEarningsRoutes(app) {
         }
     });
 
-    // ✅ 4. XBRL parsing endpoint (con exhibit discovery mejorado)
+    // ✅ 4. XBRL parsing endpoint (Company Facts API + fallbacks)
     app.get("/api/earnings/xbrl/:symbol", async (req, res) => {
         try {
             const sym = normalizeSymbol(req.params.symbol);
@@ -234,15 +312,40 @@ function registerEarningsRoutes(app) {
                 return res.status(404).json({ ok: false, ticker: sym, error: "No selected filing", resolved });
             }
 
-            // ✅ 1) Listar todos los archivos del filing (index.json)
+            // ✅ ESTRATEGIA 1: Company Facts API (MEJOR - datos pre-procesados por SEC)
+            try {
+                console.log(`🔍 Attempting Company Facts API for ${sym}...`);
+                const cik10 = String(sec.cik).padStart(10, "0");
+                const companyFacts = await fetchCompanyFacts(cik10);
+                const bundle = extractBundleFromCompanyFacts(sym, companyFacts);
+
+                // Validar que sacamos al menos revenue o net_income
+                if (bundle.reported.income.revenue || bundle.reported.income.net_income) {
+                    console.log(`✅ Company Facts API success for ${sym}`);
+                    const out = computeDerived(bundle);
+                    return res.json({
+                        ok: true,
+                        ticker: sym,
+                        selected: resolved.selected,
+                        strategy: "company_facts_api",
+                        bundle: out,
+                    });
+                } else {
+                    console.log(`⚠️ Company Facts API returned empty data for ${sym}`);
+                }
+            } catch (apiErr) {
+                console.warn(`⚠️ Company Facts API failed for ${sym}:`, apiErr.message);
+            }
+
+            // ✅ ESTRATEGIA 2-4: Fallback a parsing de documentos HTML/XBRL
+            console.log(`🔄 Falling back to document parsing for ${sym}...`);
+
             const files = await listFilingFiles({
                 cik: sec.cik,
                 accessionNumber: resolved.selected.accessionNumber,
             });
 
             const best = pickBestExhibitDoc(files);
-
-            // ✅ Fallback si no encontramos exhibit: usar primaryDocument
             const filename = best?.name || resolved.selected.primaryDocument;
 
             const url = buildFilingFileUrl({
@@ -253,20 +356,106 @@ function registerEarningsRoutes(app) {
 
             const { text: html, contentType } = await fetchSecDocumentText(url, { timeoutMs: 20000 });
 
-            // ✅ Extraer bundle desde Inline XBRL del exhibit
-            const bundle = extractBundleFromInlineXbrl({
-                ticker: sym,
-                filingDate: resolved.selected.filingDate,
-                html,
-            });
+            let bundle;
+            let strategy;
 
-            // ✅ Usar la misma función computeDerived (con highlights)
+            if (hasInlineXbrl(html)) {
+                // ESTRATEGIA 2: Inline XBRL parsing
+                console.log(`📊 Using Inline XBRL parsing for ${sym}`);
+                bundle = extractBundleFromInlineXbrl({
+                    ticker: sym,
+                    filingDate: resolved.selected.filingDate,
+                    html,
+                });
+                strategy = "inline_xbrl_parsing";
+            } else if (hasHtmlTables(html)) {
+                // ESTRATEGIA 3: HTML tables regex parsing
+                console.log(`📋 Using HTML tables parsing for ${sym}`);
+                const basic = extractBasicFromHtml(html);
+
+                bundle = {
+                    ticker: sym,
+                    period: {
+                        period_id: null,
+                        quarter_end_date: null,
+                        filing_date: resolved.selected.filingDate,
+                        currency: "USD",
+                        scaling: "million",
+                    },
+                    sources: [{ doc_type: "sec_exhibit_html", url: url }],
+                    reported: {
+                        income: {
+                            revenue: basic.income.revenue,
+                            gross_profit: null,
+                            operating_income: null,
+                            net_income: basic.income.net_income,
+                        },
+                        balance: {
+                            total_assets: null,
+                            current_assets: null,
+                            cash_and_equivalents: null,
+                            short_term_investments: null,
+                        },
+                        cashflow: { operating_cash_flow: null, capex: null },
+                        shares: { diluted: null, basic: null },
+                    },
+                    adjusted: {
+                        income: {
+                            revenue: null,
+                            gross_profit: null,
+                            operating_income: null,
+                            net_income: null
+                        }
+                    },
+                    adjustments: [],
+                    _debug: { mode: "html_tables_fallback" },
+                };
+                strategy = "html_tables_regex";
+            } else {
+                // ESTRATEGIA 4: Bundle vacío
+                console.log(`❌ No parsing strategy worked for ${sym}`);
+                bundle = {
+                    ticker: sym,
+                    period: {
+                        period_id: null,
+                        quarter_end_date: null,
+                        filing_date: resolved.selected.filingDate,
+                        currency: "USD",
+                        scaling: "million",
+                    },
+                    sources: [{ doc_type: "sec_doc_no_parse", url }],
+                    reported: {
+                        income: { revenue: null, gross_profit: null, operating_income: null, net_income: null },
+                        balance: {
+                            total_assets: null,
+                            current_assets: null,
+                            cash_and_equivalents: null,
+                            short_term_investments: null
+                        },
+                        cashflow: { operating_cash_flow: null, capex: null },
+                        shares: { diluted: null, basic: null },
+                    },
+                    adjusted: {
+                        income: {
+                            revenue: null,
+                            gross_profit: null,
+                            operating_income: null,
+                            net_income: null
+                        }
+                    },
+                    adjustments: [],
+                    _debug: { mode: "no_ixbrl_no_tables" },
+                };
+                strategy = "no_data";
+            }
+
             const out = computeDerived(bundle);
 
             res.json({
                 ok: true,
                 ticker: sym,
                 selected: resolved.selected,
+                strategy,
                 pickedDoc: {
                     filename,
                     pickedBy: best ? "index.json exhibit heuristic" : "primaryDocument fallback"
@@ -286,7 +475,41 @@ function registerEarningsRoutes(app) {
         }
     });
 
-    // ✅ 5. Mock data endpoint (catch-all al final)
+
+    // ✅ 5. SEC Company Facts API endpoint (datos reales XBRL del SEC)
+    app.get("/api/earnings/sec/:symbol", async (req, res) => {
+        try {
+            const sym = normalizeSymbol(req.params.symbol);
+
+            // ✅ Primero intentar con discoverEarningsFromSEC para obtener CIK
+            const sec = await discoverEarningsFromSEC(sym);
+
+            if (!sec?.ok || !sec?.cik) {
+                return res.status(404).json({
+                    ok: false,
+                    ticker: sym,
+                    error: "CIK not found for ticker"
+                });
+            }
+
+            const cik10 = String(sec.cik).padStart(10, "0");
+            const cf = await fetchCompanyFacts(cik10);
+
+            // cf.cik in response is numeric; keep it for source URL
+            cf.cik = cik10;
+
+            const bundle = extractBundleFromCompanyFacts(sym, cf);
+            const out = computeDerived(bundle);
+
+            res.json({ ok: true, ticker: sym, cik: cik10, bundle: out });
+        } catch (e) {
+            console.error("✗ ERROR en earnings/sec:", e.message);
+            res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+        }
+    });
+
+
+    // ✅ 6. Mock data endpoint (catch-all al final)
     app.get("/api/earnings/:symbol", async (req, res) => {
         try {
             const sym = normalizeSymbol(req.params.symbol);
