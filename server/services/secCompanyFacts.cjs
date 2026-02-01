@@ -21,6 +21,11 @@ const {
     extractFirstAvailable
 } = require('./xbrlConceptMapper.cjs');
 
+const {
+    addComputedMetrics
+} = require('./metricsCalculator.cjs');
+
+
 // ===========================
 // FILE CACHE HELPERS
 // ===========================
@@ -601,9 +606,6 @@ function extractAllMetrics(facts, anchor) {
     };
 }
 
-// ===========================
-// EXTRACT SERIES (MULTIPLE PERIODS)
-// ===========================
 function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
     const facts = companyFactsJson?.facts?.['us-gaap'] ?? {};
 
@@ -647,6 +649,7 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
 
     const cik10 = padCik10(companyFactsJson?.cik);
 
+    // 5) Construir bundles (sin computed metrics primero)
     const series = anchors.map(anchor => {
         console.log(`Processing quarter ${anchor.fp} FY${anchor.fy} end ${anchor.end}`);
 
@@ -713,8 +716,10 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
         return bundle;
     });
 
+    // Ordenar desc por quarter_end_date
     series.sort((a, b) => (a.period.quarter_end_date < b.period.quarter_end_date ? 1 : -1));
 
+    // Deduplicate por period_id
     const seen = new Set();
     const deduped = [];
     for (const b of series) {
@@ -724,8 +729,15 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
         deduped.push(b);
     }
 
-    return { series: deduped, latestEndAll };
+    // 🆕 AGREGAR COMPUTED METRICS (TTM, YoY, QoQ, Margins, Ratios)
+    console.log(`Adding computed metrics (TTM, YoY, QoQ, margins, ratios)...`);
+    const enrichedSeries = deduped.map((bundle, index) => {
+        return addComputedMetrics(bundle, deduped, index);
+    });
+
+    return { series: enrichedSeries, latestEndAll };
 }
+
 
 module.exports = {
     normalizeSymbol,
