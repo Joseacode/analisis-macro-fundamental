@@ -8,13 +8,18 @@ const path = require('path');
 const fs = require('fs/promises');
 
 // ===========================
-// 🆕 IMPORT FISCAL PERIOD DERIVER
+// IMPORTS
 // ===========================
 const {
     deriveFiscalPeriod,
     validateFilingDelta,
     detectFiscalYearEnd
 } = require('./fiscalPeriodDeriver.cjs');
+
+const {
+    CONCEPT_MAPPINGS,
+    extractFirstAvailable
+} = require('./xbrlConceptMapper.cjs');
 
 // ===========================
 // FILE CACHE HELPERS
@@ -141,113 +146,49 @@ function daysBetween(start, end) {
     return Math.round((b - a) / (1000 * 60 * 60 * 24));
 }
 
-/**
- * Detecta si un item es YTD (Year-To-Date)
- */
 function isYTD(item) {
     const fp = String(item?.fp ?? '').toUpperCase();
-    // Solo Q1-Q4 pueden ser YTD
     if (!['Q1', 'Q2', 'Q3', 'Q4'].includes(fp)) return false;
-
-    // Si tiene start/end, calcular duración
     const days = daysBetween(item?.start, item?.end);
-    if (days != null) {
-        // Si > 110 días, es YTD
-        return days > 110;
-    }
-
-    // Si NO tiene start, asumir que es YTD
+    if (days != null) return days > 110;
     return !item?.start;
 }
 
-/**
- * Valida que un item sea un quarter real (80-110 días)
- */
 function isQuarterLike(item) {
     const fp = String(item?.fp ?? '').toUpperCase();
-
-    // 1) Debe ser Q1-Q4
     if (!['Q1', 'Q2', 'Q3', 'Q4'].includes(fp)) return false;
-
-    // 2) CRÍTICO: Rechazar si NO tiene start
-    if (!item?.start) {
-        console.log(`❌ isQuarterLike: Rejected (no start) fp=${fp}, end=${item?.end}, val=${item?.value}`);
-        return false;
-    }
-
-    // 3) Validar duración estricta
+    if (!item?.start) return false;
     const days = daysBetween(item.start, item.end);
-
-    // Si no se puede calcular días, rechazar
-    if (days === null || isNaN(days)) {
-        console.log(`❌ isQuarterLike: Rejected (invalid days) fp=${fp}, start=${item.start}, end=${item.end}`);
-        return false;
-    }
-
-    // 4) DEBUG: Mostrar TODOS los items que llegan aquí
-    const isValid = days >= 80 && days <= 110;
-    if (isValid) {
-        console.log(`✅ isQuarterLike: ACCEPTED fp=${fp}, days=${days}, end=${item.end}, val=${item.value}`);
-    } else {
-        console.log(`❌ isQuarterLike: Rejected (duration) fp=${fp}, days=${days}, end=${item.end}, val=${item.value}`);
-    }
-
-    return isValid;
+    if (days === null || isNaN(days)) return false;
+    return days >= 80 && days <= 110;
 }
 
-/**
- * Calcula valor quarterly desde YTD por resta aritmética
- */
 function computeQuarterlyDelta(allItems, anchor) {
     const { end, fy, fp } = anchor;
-    console.log(`computeQuarterlyDelta: fp=${fp} FY${fy} end=${end}`);
 
-    // Q1 nunca necesita resta (es el primer quarter del año fiscal)
     if (fp === 'Q1') {
         const q1Items = allItems.filter(x => x?.end === end && x?.fy === fy && x?.fp === 'Q1' && x?.value != null);
-        const result = q1Items.sort((a, b) => (String(a.filed) > String(b.filed) ? -1 : 1))[0] || null;
-        console.log(`Q1 direct value:`, result?.value);
-        return result;
+        return q1Items.sort((a, b) => (String(a.filed) > String(b.filed) ? -1 : 1))[0] || null;
     }
 
-    // Buscar el YTD del quarter actual
     const ytdCandidates = allItems.filter(x => x?.end === end && x?.fy === fy && x?.fp === fp && x?.value != null);
-    console.log(`YTD current candidates:`, ytdCandidates.length);
-
-    // Preferir YTD explícito, sino tomar el primero
     const ytdCurrent = ytdCandidates.find(isYTD) || ytdCandidates.sort((a, b) => (String(a.filed) > String(b.filed) ? -1 : 1))[0];
 
-    if (!ytdCurrent) {
-        console.warn(`No YTD found for ${fp} FY${fy}`);
-        return null;
-    }
+    if (!ytdCurrent) return null;
 
-    console.log(`YTD current:`, ytdCurrent.value, `has start:`, !!ytdCurrent.start);
-
-    // Mapeo de quarters previos
     const prevFpMap = { Q2: 'Q1', Q3: 'Q2', Q4: 'Q3' };
     const prevFp = prevFpMap[fp];
 
-    // Buscar el YTD del quarter anterior (mismo año fiscal)
     const ytdPrevCandidates = allItems.filter(x => x?.fy === fy && x?.fp === prevFp && x?.value != null);
-    console.log(`YTD prev candidates (${prevFp}):`, ytdPrevCandidates.length);
-
     const ytdPrev = ytdPrevCandidates.sort((a, b) => (String(a.filed) > String(b.filed) ? -1 : 1))[0];
 
-    if (!ytdPrev) {
-        console.warn(`No prev YTD found for ${fp} FY${fy}, using current YTD as-is`);
-        return ytdCurrent;
-    }
+    if (!ytdPrev) return ytdCurrent;
 
-    console.log(`YTD prev:`, ytdPrev.value);
-
-    // RESTA ARITMÉTICA
     const computed = ytdCurrent.value - ytdPrev.value;
-    console.log(`COMPUTED ${fp} FY${fy}:`, `${ytdCurrent.value} - ${ytdPrev.value} =`, computed);
 
     return {
         value: computed,
-        start: ytdPrev.end, // Aproximación: start = end del quarter previo
+        start: ytdPrev.end,
         end: ytdCurrent.end,
         filed: ytdCurrent.filed,
         form: ytdCurrent.form,
@@ -256,17 +197,11 @@ function computeQuarterlyDelta(allItems, anchor) {
         frame: ytdCurrent.frame,
         unit: ytdCurrent.unit,
         computed: true,
-        method: 'ytd_delta',
-        ytd_current: ytdCurrent.value,
-        ytd_previous: ytdPrev.value
+        method: 'ytd_delta'
     };
 }
 
-/**
- * Extrae valor de quarter con fallback a YTD delta
- */
 function extractQuarterValue(allItems, anchor) {
-    // PASO 1: Buscar quarter directo (80-110 días)
     const quarterItems = allItems.filter(isQuarterLike);
     const directMatch = quarterItems.filter(x =>
         x?.end === anchor.end &&
@@ -276,26 +211,18 @@ function extractQuarterValue(allItems, anchor) {
     );
 
     if (directMatch.length > 0) {
-        const result = directMatch.sort((a, b) => (String(a.filed) > String(b.filed) ? -1 : 1))[0];
-        console.log(`✅ Found direct quarter for ${anchor.fp} FY${anchor.fy}:`, result.value);
-        return result;
+        return directMatch.sort((a, b) => (String(a.filed) > String(b.filed) ? -1 : 1))[0];
     }
 
-    // PASO 2: Si no hay quarter directo, calcular desde YTD
-    console.log(`⚠️ No direct quarter found, computing from YTD for ${anchor.fp} FY${anchor.fy}`);
-    const result = computeQuarterlyDelta(allItems, anchor);
-    return result;
+    return computeQuarterlyDelta(allItems, anchor);
 }
 
 // ===========================
 // PICKING HELPERS
 // ===========================
 function pickByEndBest(items, end) {
-    const list = items
-        .filter(x => x?.end === end && x.value != null);
-
+    const list = items.filter(x => x?.end === end && x.value != null);
     if (!list.length) return null;
-
     list.sort((a, b) => (String(a.filed) > String(b.filed) ? -1 : 1));
     return list[0];
 }
@@ -306,11 +233,8 @@ function pickByEndStartBest(items, anchor) {
 
     if (!start) return pickByEndBest(items, end);
 
-    const list = items
-        .filter(x => x?.end === end && x?.start === start && x.value != null);
-
+    const list = items.filter(x => x?.end === end && x?.start === start && x.value != null);
     if (!list.length) return null;
-
     list.sort((a, b) => (String(a.filed) > String(b.filed) ? -1 : 1));
     return list[0];
 }
@@ -379,52 +303,302 @@ function validateBundle(bundle) {
     return w;
 }
 
-// ===========================
-// EXTRACT FACTS FROM UNITS
-// ===========================
-function extractFactItems(factObj, unitWanted) {
-    if (!factObj?.units) return [];
-
-    const units = factObj.units;
-    const unitKeys = Object.keys(units);
-    if (!unitKeys.length) return [];
-
-    let pickUnitKey = null;
-    if (unitWanted === 'USD') {
-        pickUnitKey = unitKeys.find(k => k === 'USD') || unitKeys.find(k => k.startsWith('USD')) || unitKeys[0];
-    } else {
-        pickUnitKey = unitKeys.find(k => k === 'shares') || unitKeys.find(k => k.toLowerCase().includes('shares')) || unitKeys[0];
-    }
-
-    const arr = Array.isArray(units[pickUnitKey]) ? units[pickUnitKey] : [];
-    if (!arr.length) return [];
-
-    const okForms = new Set(['10-Q', '10-K', '20-F', '40-F', '6-K', '8-K']);
-    const base = arr
-        .filter(x => typeof x.val === 'number' && x.end)
-        .filter(x => okForms.has(String(x.form)));
-
-    const list = base.length ? base : arr.filter(x => typeof x.val === 'number' && x.end);
-
-    return list.map(item => ({
-        value: item.val,
-        start: item.start ?? null,
-        end: item.end ?? null,
-        filed: item.filed ?? null,
-        form: item.form ?? null,
-        fp: item.fp ?? null,
-        fy: item.fy ?? null,
-        frame: item.frame ?? null,
-        unit: pickUnitKey,
-    }));
-}
-
-// ===========================
-// 🆕 HELPER: NOMBRE DE MES
-// ===========================
 function getMonthName(month) {
     const names = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return names[month] || '';
+}
+
+// ===========================
+// EXTRACT ALL FINANCIAL METRICS (P2)
+// ===========================
+function extractAllMetrics(facts, anchor) {
+    const end = anchor.end;
+
+    // ===========================
+    // INCOME STATEMENT
+    // ===========================
+    const revenueItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.revenue, 'USD');
+    const costOfRevenueItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.cost_of_revenue, 'USD');
+    const grossProfitItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.gross_profit, 'USD');
+    const rdItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.research_and_development, 'USD');
+    const smItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.sales_and_marketing, 'USD');
+    const gaItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.general_and_administrative, 'USD');
+    const opExpensesItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.operating_expenses, 'USD');
+    const opIncomeItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.operating_income, 'USD');
+    const interestExpenseItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.interest_expense, 'USD');
+    const interestIncomeItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.interest_income, 'USD');
+    const otherIncomeItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.other_income, 'USD');
+    const incomeBeforeTaxItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.income_before_tax, 'USD');
+    const incomeTaxItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.income_tax_expense, 'USD');
+    const netIncomeItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.net_income, 'USD');
+    const epsBasicItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.eps_basic, 'pure');
+    const epsDilutedItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.eps_diluted, 'pure');
+
+    // Extraer valores (flow metrics usan extractQuarterValue)
+    const revenue = extractQuarterValue(revenueItems, anchor);
+    const costOfRevenue = extractQuarterValue(costOfRevenueItems, anchor);
+    let grossProfit = extractQuarterValue(grossProfitItems, anchor);
+    const rd = extractQuarterValue(rdItems, anchor);
+    const sm = extractQuarterValue(smItems, anchor);
+    const ga = extractQuarterValue(gaItems, anchor);
+    let opExpenses = extractQuarterValue(opExpensesItems, anchor);
+    const opIncome = extractQuarterValue(opIncomeItems, anchor);
+    const interestExpense = extractQuarterValue(interestExpenseItems, anchor);
+    const interestIncome = extractQuarterValue(interestIncomeItems, anchor);
+    const otherIncome = extractQuarterValue(otherIncomeItems, anchor);
+    const incomeBeforeTax = extractQuarterValue(incomeBeforeTaxItems, anchor);
+    const incomeTax = extractQuarterValue(incomeTaxItems, anchor);
+    const netIncome = extractQuarterValue(netIncomeItems, anchor);
+    const epsBasic = extractQuarterValue(epsBasicItems, anchor);
+    const epsDiluted = extractQuarterValue(epsDilutedItems, anchor);
+
+    // Calcular gross profit si falta
+    if (!grossProfit && revenue?.value != null && costOfRevenue?.value != null) {
+        grossProfit = {
+            value: revenue.value - costOfRevenue.value,
+            computed: true,
+            method: 'revenue_minus_cogs'
+        };
+    }
+
+    // Calcular operating expenses si falta
+    if (!opExpenses && rd?.value != null && sm?.value != null && ga?.value != null) {
+        opExpenses = {
+            value: (rd.value || 0) + (sm.value || 0) + (ga.value || 0),
+            computed: true,
+            method: 'sum_rd_sm_ga'
+        };
+    }
+
+    // ===========================
+    // BALANCE SHEET
+    // ===========================
+    const cashItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.cash_and_equivalents, 'USD');
+    const stInvItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.short_term_investments, 'USD');
+    const arItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.accounts_receivable, 'USD');
+    const inventoryItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.inventory, 'USD');
+    const prepaidItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.prepaid_expenses, 'USD');
+    const otherCurrentAssetsItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.other_current_assets, 'USD');
+    const currentAssetsItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.current_assets, 'USD');
+    const ppeItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.property_plant_equipment, 'USD');
+    const goodwillItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.goodwill, 'USD');
+    const intangiblesItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.intangible_assets, 'USD');
+    const ltInvItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.long_term_investments, 'USD');
+    const otherNoncurrentAssetsItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.other_noncurrent_assets, 'USD');
+    const noncurrentAssetsItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.noncurrent_assets, 'USD');
+    const totalAssetsItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.total_assets, 'USD');
+
+    const apItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.accounts_payable, 'USD');
+    const stDebtItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.short_term_debt, 'USD');
+    const accruedItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.accrued_expenses, 'USD');
+    const deferredRevCurrentItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.deferred_revenue_current, 'USD');
+    const otherCurrentLiabItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.other_current_liabilities, 'USD');
+    const currentLiabItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.current_liabilities, 'USD');
+    const ltDebtItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.long_term_debt, 'USD');
+    const deferredTaxItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.deferred_tax, 'USD');
+    const deferredRevNoncurrentItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.deferred_revenue_noncurrent, 'USD');
+    const otherNoncurrentLiabItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.other_noncurrent_liabilities, 'USD');
+    const noncurrentLiabItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.noncurrent_liabilities, 'USD');
+    const totalLiabItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.total_liabilities, 'USD');
+
+    const commonStockItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.common_stock, 'USD');
+    const apicItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.additional_paid_in_capital, 'USD');
+    const retainedEarningsItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.retained_earnings, 'USD');
+    const treasuryItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.treasury_stock, 'USD');
+    const aociItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.accumulated_other_comprehensive_income, 'USD');
+    const totalEquityItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.total_equity, 'USD');
+
+    // Balance sheet values (point-in-time, usar pickByEndBest)
+    const cash = pickByEndBest(cashItems, end);
+    const stInv = pickByEndBest(stInvItems, end);
+    const ar = pickByEndBest(arItems, end);
+    const inventory = pickByEndBest(inventoryItems, end);
+    const prepaid = pickByEndBest(prepaidItems, end);
+    const otherCurrentAssets = pickByEndBest(otherCurrentAssetsItems, end);
+    const currentAssets = pickByEndBest(currentAssetsItems, end);
+    const ppe = pickByEndBest(ppeItems, end);
+    const goodwill = pickByEndBest(goodwillItems, end);
+    const intangibles = pickByEndBest(intangiblesItems, end);
+    const ltInv = pickByEndBest(ltInvItems, end);
+    const otherNoncurrentAssets = pickByEndBest(otherNoncurrentAssetsItems, end);
+    const noncurrentAssets = pickByEndBest(noncurrentAssetsItems, end);
+    const totalAssets = pickByEndBest(totalAssetsItems, end);
+
+    const ap = pickByEndBest(apItems, end);
+    const stDebt = pickByEndBest(stDebtItems, end);
+    const accrued = pickByEndBest(accruedItems, end);
+    const deferredRevCurrent = pickByEndBest(deferredRevCurrentItems, end);
+    const otherCurrentLiab = pickByEndBest(otherCurrentLiabItems, end);
+    const currentLiab = pickByEndBest(currentLiabItems, end);
+    const ltDebt = pickByEndBest(ltDebtItems, end);
+    const deferredTax = pickByEndBest(deferredTaxItems, end);
+    const deferredRevNoncurrent = pickByEndBest(deferredRevNoncurrentItems, end);
+    const otherNoncurrentLiab = pickByEndBest(otherNoncurrentLiabItems, end);
+    const noncurrentLiab = pickByEndBest(noncurrentLiabItems, end);
+    const totalLiab = pickByEndBest(totalLiabItems, end);
+
+    const commonStock = pickByEndBest(commonStockItems, end);
+    const apic = pickByEndBest(apicItems, end);
+    const retainedEarnings = pickByEndBest(retainedEarningsItems, end);
+    const treasury = pickByEndBest(treasuryItems, end);
+    const aoci = pickByEndBest(aociItems, end);
+    const totalEquity = pickByEndBest(totalEquityItems, end);
+
+    // ===========================
+    // CASH FLOW STATEMENT
+    // ===========================
+    const depAmortItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.depreciation_amortization, 'USD');
+    const sbcItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.stock_based_compensation, 'USD');
+    const wcItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.changes_in_working_capital, 'USD');
+    const deferredTaxCFItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.deferred_income_tax, 'USD');
+    const otherOpActivitiesItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.other_operating_activities, 'USD');
+    const ocfItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.operating_cash_flow, 'USD');
+    const capexItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.capex, 'USD');
+    const acquisitionsItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.acquisitions, 'USD');
+    const purchInvItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.purchases_of_investments, 'USD');
+    const salesInvItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.sales_of_investments, 'USD');
+    const otherInvActivitiesItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.other_investing_activities, 'USD');
+    const icfItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.investing_cash_flow, 'USD');
+    const debtIssuedItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.debt_issued, 'USD');
+    const debtRepaidItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.debt_repaid, 'USD');
+    const dividendsItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.dividends_paid, 'USD');
+    const stockRepurchItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.stock_repurchased, 'USD');
+    const stockIssuedItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.stock_issued, 'USD');
+    const otherFinActivitiesItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.other_financing_activities, 'USD');
+    const fcfItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.financing_cash_flow, 'USD');
+    const netChangeItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.net_change_in_cash, 'USD');
+
+    const depAmort = extractQuarterValue(depAmortItems, anchor);
+    const sbc = extractQuarterValue(sbcItems, anchor);
+    const wc = extractQuarterValue(wcItems, anchor);
+    const deferredTaxCF = extractQuarterValue(deferredTaxCFItems, anchor);
+    const otherOpActivities = extractQuarterValue(otherOpActivitiesItems, anchor);
+    const ocf = extractQuarterValue(ocfItems, anchor);
+    const capexAbs = extractQuarterValue(capexItems, anchor);
+    const capex = capexAbs?.value != null ? { ...capexAbs, value: -Math.abs(capexAbs.value) } : capexAbs;
+    const acquisitions = extractQuarterValue(acquisitionsItems, anchor);
+    const purchInv = extractQuarterValue(purchInvItems, anchor);
+    const salesInv = extractQuarterValue(salesInvItems, anchor);
+    const otherInvActivities = extractQuarterValue(otherInvActivitiesItems, anchor);
+    const icf = extractQuarterValue(icfItems, anchor);
+    const debtIssued = extractQuarterValue(debtIssuedItems, anchor);
+    const debtRepaid = extractQuarterValue(debtRepaidItems, anchor);
+    const dividends = extractQuarterValue(dividendsItems, anchor);
+    const stockRepurch = extractQuarterValue(stockRepurchItems, anchor);
+    const stockIssued = extractQuarterValue(stockIssuedItems, anchor);
+    const otherFinActivities = extractQuarterValue(otherFinActivitiesItems, anchor);
+    const fcf = extractQuarterValue(fcfItems, anchor);
+    const netChange = extractQuarterValue(netChangeItems, anchor);
+
+    // ===========================
+    // SHARES - CORREGIDO
+    // ===========================
+    const dilutedSharesItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.diluted_shares, 'shares');
+    const basicSharesItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.basic_shares, 'shares');
+    const dilutedShares = pickByEndBest(dilutedSharesItems, end);
+    const basicShares = pickByEndBest(basicSharesItems, end);
+
+    // Calcular Free Cash Flow si no existe
+    let freeCashFlow = null;
+    if (ocf?.value != null && capex?.value != null) {
+        freeCashFlow = {
+            value: ocf.value + capex.value,
+            computed: true,
+            method: 'ocf_plus_capex'
+        };
+    }
+
+    return {
+        income: {
+            revenue: revenue?.value ?? null,
+            cost_of_revenue: costOfRevenue?.value ?? null,
+            gross_profit: grossProfit?.value ?? null,
+            research_and_development: rd?.value ?? null,
+            sales_and_marketing: sm?.value ?? null,
+            general_and_administrative: ga?.value ?? null,
+            operating_expenses: opExpenses?.value ?? null,
+            operating_income: opIncome?.value ?? null,
+            interest_expense: interestExpense?.value ?? null,
+            interest_income: interestIncome?.value ?? null,
+            other_income: otherIncome?.value ?? null,
+            income_before_tax: incomeBeforeTax?.value ?? null,
+            income_tax_expense: incomeTax?.value ?? null,
+            net_income: netIncome?.value ?? null,
+            eps_basic: epsBasic?.value ?? null,
+            eps_diluted: epsDiluted?.value ?? null
+        },
+        balance: {
+            cash_and_equivalents: cash?.value ?? null,
+            short_term_investments: stInv?.value ?? null,
+            accounts_receivable: ar?.value ?? null,
+            inventory: inventory?.value ?? null,
+            prepaid_expenses: prepaid?.value ?? null,
+            other_current_assets: otherCurrentAssets?.value ?? null,
+            current_assets: currentAssets?.value ?? null,
+            property_plant_equipment: ppe?.value ?? null,
+            goodwill: goodwill?.value ?? null,
+            intangible_assets: intangibles?.value ?? null,
+            long_term_investments: ltInv?.value ?? null,
+            other_noncurrent_assets: otherNoncurrentAssets?.value ?? null,
+            noncurrent_assets: noncurrentAssets?.value ?? null,
+            total_assets: totalAssets?.value ?? null,
+            accounts_payable: ap?.value ?? null,
+            short_term_debt: stDebt?.value ?? null,
+            accrued_expenses: accrued?.value ?? null,
+            deferred_revenue_current: deferredRevCurrent?.value ?? null,
+            other_current_liabilities: otherCurrentLiab?.value ?? null,
+            current_liabilities: currentLiab?.value ?? null,
+            long_term_debt: ltDebt?.value ?? null,
+            deferred_tax: deferredTax?.value ?? null,
+            deferred_revenue_noncurrent: deferredRevNoncurrent?.value ?? null,
+            other_noncurrent_liabilities: otherNoncurrentLiab?.value ?? null,
+            noncurrent_liabilities: noncurrentLiab?.value ?? null,
+            total_liabilities: totalLiab?.value ?? null,
+            common_stock: commonStock?.value ?? null,
+            additional_paid_in_capital: apic?.value ?? null,
+            retained_earnings: retainedEarnings?.value ?? null,
+            treasury_stock: treasury?.value ?? null,
+            accumulated_other_comprehensive_income: aoci?.value ?? null,
+            total_equity: totalEquity?.value ?? null
+        },
+        cashflow: {
+            net_income_cf: netIncome?.value ?? null,
+            depreciation_amortization: depAmort?.value ?? null,
+            stock_based_compensation: sbc?.value ?? null,
+            changes_in_working_capital: wc?.value ?? null,
+            deferred_income_tax: deferredTaxCF?.value ?? null,
+            other_operating_activities: otherOpActivities?.value ?? null,
+            operating_cash_flow: ocf?.value ?? null,
+            capex: capex?.value ?? null,
+            acquisitions: acquisitions?.value ?? null,
+            purchases_of_investments: purchInv?.value ?? null,
+            sales_of_investments: salesInv?.value ?? null,
+            other_investing_activities: otherInvActivities?.value ?? null,
+            investing_cash_flow: icf?.value ?? null,
+            debt_issued: debtIssued?.value ?? null,
+            debt_repaid: debtRepaid?.value ?? null,
+            dividends_paid: dividends?.value ?? null,
+            stock_repurchased: stockRepurch?.value ?? null,
+            stock_issued: stockIssued?.value ?? null,
+            other_financing_activities: otherFinActivities?.value ?? null,
+            financing_cash_flow: fcf?.value ?? null,
+            net_change_in_cash: netChange?.value ?? null,
+            free_cash_flow: freeCashFlow?.value ?? null
+        },
+        shares: {
+            diluted: dilutedShares?.value ?? null,
+            basic: basicShares?.value ?? null
+        },
+        computed_fields: {
+            gross_profit: grossProfit?.computed || false,
+            operating_expenses: opExpenses?.computed || false,
+            operating_income: opIncome?.computed || false,
+            net_income: netIncome?.computed || false,
+            ocf: ocf?.computed || false,
+            capex: capex?.computed || false,
+            free_cash_flow: freeCashFlow?.computed || false
+        }
+    };
 }
 
 // ===========================
@@ -433,17 +607,10 @@ function getMonthName(month) {
 function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
     const facts = companyFactsJson?.facts?.['us-gaap'] ?? {};
 
-    // 1) Revenue anchor (CON ORDEN CORREGIDO)
-    const revCandidates = [
-        'RevenueFromContractWithCustomerExcludingAssessedTax',
-        'RevenueFromContractWithCustomerIncludingAssessedTax',
-        'SalesRevenueNet',
-        'Revenues',
-    ];
-
+    const revCandidates = CONCEPT_MAPPINGS.revenue;
     let revenueItems = [];
     for (const k of revCandidates) {
-        const items = extractFactItems(facts[k], 'USD');
+        const items = extractFirstAvailable(facts, [k], 'USD');
         if (items?.length) {
             console.log(`Using revenue concept: ${k}`);
             revenueItems = items;
@@ -453,9 +620,8 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
 
     let anchorItems = revenueItems?.length
         ? revenueItems
-        : extractFactItems(facts.NetIncomeLoss, 'USD');
+        : extractFirstAvailable(facts, CONCEPT_MAPPINGS.net_income, 'USD');
 
-    // Calcular latestEndAll ANTES de filtrar (para debug)
     const latestEndAll = anchorItems
         .map(x => x?.end)
         .filter(Boolean)
@@ -465,11 +631,9 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
     console.log(`Latest end date available:`, latestEndAll);
     console.log(`Total anchor items BEFORE filter:`, anchorItems.length);
 
-    // 2) Solo quarters Q1-Q4 (filtrar FY y YTD)
     anchorItems = anchorItems.filter(isQuarterLike);
     console.log(`Total anchor items AFTER isQuarterLike filter:`, anchorItems.length);
 
-    // 3) Un anchor por end (best filed/form) + limit
     const anchors = uniqueByEndPickBest(anchorItems).slice(0, Math.max(1, limit));
 
     if (!anchors.length) {
@@ -478,46 +642,16 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
 
     console.log(`Processing ${anchors.length} anchors/quarters`);
 
-    // ===========================
-    // 🆕 DETECTAR FISCAL YEAR END
-    // ===========================
     const fiscalYearEndMonth = detectFiscalYearEnd(anchorItems);
     console.log(`Detected fiscal year end month: ${fiscalYearEndMonth} (${getMonthName(fiscalYearEndMonth)})`);
 
-    // 4) Pre-extraer listas (1 vez)
-    const grossProfitItems = extractFactItems(facts.GrossProfit, 'USD');
-    const costOfRevenueItems = extractFactItems(facts.CostOfRevenue, 'USD');
-    const opIncomeItems = extractFactItems(facts.OperatingIncomeLoss, 'USD');
-    const netIncomeItems = extractFactItems(facts.NetIncomeLoss, 'USD');
-    const ocfItems = extractFactItems(facts.NetCashProvidedByUsedInOperatingActivities, 'USD');
-    const capexItems = extractFactItems(facts.PaymentsToAcquirePropertyPlantAndEquipment, 'USD');
-    const assetsItems = extractFactItems(facts.Assets, 'USD');
-    const assetsCurrentItems = extractFactItems(facts.AssetsCurrent, 'USD');
-    const cashItems = extractFactItems(facts.CashAndCashEquivalentsAtCarryingValue, 'USD');
-    const stInvItems = extractFactItems(facts.AvailableForSaleSecuritiesCurrent, 'USD').length
-        ? extractFactItems(facts.AvailableForSaleSecuritiesCurrent, 'USD')
-        : extractFactItems(facts.ShortTermInvestments, 'USD');
-    const dilutedSharesItems = extractFactItems(facts.WeightedAverageNumberOfDilutedSharesOutstanding, 'shares');
-    const basicSharesItems = extractFactItems(facts.WeightedAverageNumberOfSharesOutstandingBasic, 'shares');
-
     const cik10 = padCik10(companyFactsJson?.cik);
 
-    // 5) Construir bundles
     const series = anchors.map(anchor => {
         console.log(`Processing quarter ${anchor.fp} FY${anchor.fy} end ${anchor.end}`);
 
-        const revenue = anchor;
-        const end = anchor.end;
-
-        // ===========================
-        // 🆕 DERIVAR FISCAL PERIOD AUTOMÁTICO
-        // ===========================
-        const derivedPeriod = deriveFiscalPeriod(end, fiscalYearEndMonth);
-
-        // ===========================
-        // 🆕 VALIDAR DELTA DAYS
-        // ===========================
-        const deltaDays = validateFilingDelta(anchor.filed, end);
+        const derivedPeriod = deriveFiscalPeriod(anchor.end, fiscalYearEndMonth);
+        const deltaDays = validateFilingDelta(anchor.filed, anchor.end);
         const filingWarnings = [];
 
         if (deltaDays !== null) {
@@ -528,51 +662,16 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
             }
         }
 
-        // Gross profit
-        let grossProfit = pickByEndStartBest(grossProfitItems, anchor);
-        if (!grossProfit && grossProfit?.value === null) {
-            const cost = pickByEndStartBest(costOfRevenueItems, anchor);
-            if (revenue?.value != null && cost?.value != null) {
-                grossProfit = {
-                    ...revenue,
-                    value: revenue.value - cost.value,
-                    unit: 'USD'
-                };
-            }
-        }
+        const metrics = extractAllMetrics(facts, anchor);
 
-        // Income flows (APLICAR extractQuarterValue)
-        const opIncome = extractQuarterValue(opIncomeItems, anchor);
-        const netIncome = extractQuarterValue(netIncomeItems, anchor);
-
-        // Cashflow (CRÍTICO: aplicar lógica YTD)
-        const ocf = extractQuarterValue(ocfItems, anchor);
-        const capexAbs = extractQuarterValue(capexItems, anchor);
-        const capex = capexAbs?.value != null ? { ...capexAbs, value: -Math.abs(capexAbs.value) } : capexAbs;
-
-        // Balance (stock → match por end exacto)
-        const assets = pickByEndBest(assetsItems, end);
-        const assetsCurrent = pickByEndBest(assetsCurrentItems, end);
-        const cash = pickByEndBest(cashItems, end);
-        const stInv = pickByEndBest(stInvItems, end);
-
-        // Shares
-        const dilutedShares = pickByEndBest(dilutedSharesItems, end);
-        const basicShares = pickByEndBest(basicSharesItems, end);
-
-        // ===========================
-        // 🆕 BUNDLE CON PERIOD CANÓNICO
-        // ===========================
         const bundle = {
             ticker: ticker.toUpperCase(),
             period: {
-                // Usar el period_id derivado automáticamente
                 period_id: derivedPeriod.period_id,
-                quarter_end_date: end,
+                quarter_end_date: anchor.end,
                 filing_date: anchor.filed,
                 currency: 'USD',
                 scaling: 'raw',
-                // 🆕 Metadata adicional
                 fiscal_year: derivedPeriod.fiscal_year,
                 fiscal_quarter: derivedPeriod.fiscal_quarter,
                 fiscal_year_end_month: fiscalYearEndMonth,
@@ -584,28 +683,7 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
                     url: `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik10}.json`
                 }
             ],
-            reported: {
-                income: {
-                    revenue: revenue?.value ?? null,
-                    gross_profit: grossProfit?.value ?? null,
-                    operating_income: opIncome?.value ?? null,
-                    net_income: netIncome?.value ?? null
-                },
-                balance: {
-                    total_assets: assets?.value ?? null,
-                    current_assets: assetsCurrent?.value ?? null,
-                    cash_and_equivalents: cash?.value ?? null,
-                    short_term_investments: stInv?.value ?? null
-                },
-                cashflow: {
-                    operating_cash_flow: ocf?.value ?? null,
-                    capex: capex?.value ?? null
-                },
-                shares: {
-                    diluted: dilutedShares?.value ?? null,
-                    basic: basicShares?.value ?? null
-                }
-            },
+            reported: metrics,
             warnings: [],
             _debug: {
                 anchor: {
@@ -622,21 +700,12 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
                     period_id: buildPeriodId(anchor)
                 },
                 period_match: derivedPeriod.period_id === buildPeriodId(anchor),
-                computed_fields: {
-                    operating_income: opIncome?.computed || false,
-                    net_income: netIncome?.computed || false,
-                    ocf: ocf?.computed || false,
-                    capex: capex?.computed || false
-                }
+                computed_fields: metrics.computed_fields
             }
         };
 
-        // ===========================
-        // 🆕 VALIDACIONES EXTENDIDAS
-        // ===========================
         bundle.warnings = [...validateBundle(bundle), ...filingWarnings];
 
-        // Agregar warning si derived period != SEC period
         if (!bundle._debug.period_match) {
             bundle.warnings.push('period_id_mismatch_sec_vs_derived');
         }
@@ -644,10 +713,8 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
         return bundle;
     });
 
-    // Orden desc por quarter_end_date
     series.sort((a, b) => (a.period.quarter_end_date < b.period.quarter_end_date ? 1 : -1));
 
-    // Deduplicate por period_id
     const seen = new Set();
     const deduped = [];
     for (const b of series) {
@@ -660,9 +727,6 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
     return { series: deduped, latestEndAll };
 }
 
-// ===========================
-// EXPORTS
-// ===========================
 module.exports = {
     normalizeSymbol,
     resolveCikFromTicker,

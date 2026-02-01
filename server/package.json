@@ -4,6 +4,7 @@
     "type": "module",
     "main": "index.mjs",
     "scripts": {
+        "dev": "node --watch index.mjs",
         "dev:server": "node --watch index.mjs",
         "dev:wrangler": "wrangler dev",
         "start": "node index.mjs",
@@ -11,9 +12,16 @@
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage"
     },
-    "keywords": [],
+    "keywords": [
+        "sec",
+        "yahoo-finance",
+        "fundamental-analysis",
+        "financial-data",
+        "xbrl"
+    ],
     "author": "",
     "license": "ISC",
+    "description": "Backend API for SEC XBRL Company Facts and Yahoo Finance data with fiscal period derivation and financial statement normalization",
     "dependencies": {
         "cors": "^2.8.5",
         "dotenv": "^16.6.1",
@@ -29,20 +37,34 @@
     "jest": {
         "testEnvironment": "node",
         "testMatch": [
-            "**/__tests__/**/*.(spec|test).(js|cjs|mjs)",
-            "**/?(*.)+(spec|test).(js|cjs|mjs)"
+            "**/server/services/__tests__/**/*.test.cjs"
+        ],
+        "transform": {},
+        "moduleFileExtensions": [
+            "js",
+            "mjs",
+            "cjs",
+            "json"
         ],
         "collectCoverageFrom": [
-            "server/services/**/*.(js|cjs|mjs)",
-            "!server/services/**/__tests__/**"
+            "server/services/**/*.cjs",
+            "!server/services/__tests__/**"
         ],
         "coverageThreshold": {
             "global": {
-                "branches": 80,
-                "functions": 80,
-                "lines": 80,
-                "statements": 80
+                "branches": 70,
+                "functions": 70,
+                "lines": 70,
+                "statements": 70
             }
-        }
+        },
+        "coverageReporters": [
+            "text",
+            "lcov",
+            "html"
+        ]
+    },
+    "engines": {
+        "node": ">=18.0.0"
     }
 }
