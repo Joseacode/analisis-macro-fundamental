@@ -4,8 +4,12 @@
     "type": "module",
     "main": "index.mjs",
     "scripts": {
-        "dev": "node --watch index.mjs",
-        "start": "node index.mjs"
+        "dev:server": "node --watch index.mjs",
+        "dev:wrangler": "wrangler dev",
+        "start": "node index.mjs",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage"
     },
     "keywords": [],
     "author": "",
@@ -17,5 +21,28 @@
         "node-cron": "^4.2.1",
         "serpapi": "^2.2.1",
         "yahoo-finance2": "^3.13.0"
+    },
+    "devDependencies": {
+        "jest": "^30.2.0",
+        "wrangler": "^3.0.0"
+    },
+    "jest": {
+        "testEnvironment": "node",
+        "testMatch": [
+            "**/__tests__/**/*.(spec|test).(js|cjs|mjs)",
+            "**/?(*.)+(spec|test).(js|cjs|mjs)"
+        ],
+        "collectCoverageFrom": [
+            "server/services/**/*.(js|cjs|mjs)",
+            "!server/services/**/__tests__/**"
+        ],
+        "coverageThreshold": {
+            "global": {
+                "branches": 80,
+                "functions": 80,
+                "lines": 80,
+                "statements": 80
+            }
+        }
     }
 }

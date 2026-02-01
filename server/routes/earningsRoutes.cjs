@@ -17,7 +17,8 @@ const { extractBundleFromInlineXbrl } = require("../services/inlineXbrlParser.cj
 const {
     resolveCikFromTicker,
     fetchCompanyFacts,
-    extractBundleFromCompanyFacts
+    extractBundleFromCompanyFacts,
+    extractSeriesFromCompanyFacts
 } = require("../services/secCompanyFacts.cjs");
 
 // Lee JSON mock una vez por request (simple). Luego optimizamos con cache en memoria.
@@ -525,6 +526,55 @@ function registerEarningsRoutes(app) {
             res.status(500).json({ ok: false, error: String(e?.message ?? e) });
         }
     });
+
+
+    // ✅ 7. Fundamentals series endpoint
+    app.get("/api/fundamentals/:ticker/series", async (req, res) => {
+        try {
+            const sym = normalizeSymbol(req.params.ticker);
+            const limit = Math.min(Number(req.query.limit) || 16, 40); // max 40 períodos
+
+            // ✅ Resolver CIK desde ticker
+            const cik = await resolveCikFromTicker(sym);
+            const cik10 = String(cik).padStart(10, "0");
+
+            // ✅ Fetch CompanyFacts
+            const cf = await fetchCompanyFacts(cik10);
+
+            // ✅ Extraer serie
+            const series = extractSeriesFromCompanyFacts(sym, cf, limit);
+
+            if (!series || series.length === 0) {
+                return res.status(404).json({
+                    ok: false,
+                    ticker: sym,
+                    error: "No quarterly data found",
+                    series: []
+                });
+            }
+
+            res.json({
+                ok: true,
+                ticker: sym,
+                cik: cik10,
+                currency: "USD",
+                scaling: "raw",
+                series,
+                _debug: {
+                    periods_found: series.length
+                }
+            });
+        } catch (e) {
+            console.error("✗ ERROR en fundamentals/series:", e.message);
+            res.status(500).json({
+                ok: false,
+                error: "Fundamentals series error",
+                detail: String(e?.message ?? e)
+            });
+        }
+    });
+
+
 
     // ✅ 6. Mock data endpoint (catch-all al final)
     app.get("/api/earnings/:symbol", async (req, res) => {
