@@ -832,12 +832,21 @@ async function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 1
 
     // AGREGAR COMPUTED METRICS (TTM, YoY, QoQ, Margins, Ratios)
     console.log(`Adding computed metrics (TTM, YoY, QoQ, margins, ratios)...`);
+
     const enrichedSeries = deduped.map((bundle, index) => {
+        console.log(`[DEBUG] Processing bundle ${index + 1}/${deduped.length} - ${bundle.period?.period_id}`);
         return addComputedMetrics(bundle, deduped, index);
+
     });
+
+    console.log('[DEBUG] ✅ All bundles processed');
+    console.log('[DEBUG] ✅ enrichedSeries.length:', enrichedSeries.length);
+    console.log('[DEBUG] ✅ enrichedSeries[0]?.period?.period_id:', enrichedSeries[0]?.period?.period_id);
+    console.log('[DEBUG] ✅ About to return from extractSeriesFromCompanyFacts');
 
     return { series: enrichedSeries, latestEndAll };
 }
+
 
 module.exports = {
     normalizeSymbol,

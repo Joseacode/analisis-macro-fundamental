@@ -528,51 +528,51 @@ function registerEarningsRoutes(app) {
     });
 
 
-    // ✅ 7. Fundamentals series endpoint
-    app.get("/api/fundamentals/:ticker/series", async (req, res) => {
-        try {
-            const sym = normalizeSymbol(req.params.ticker);
-            const limit = Math.min(Number(req.query.limit) || 16, 40); // max 40 períodos
+    // // ✅ 7. Fundamentals series endpoint
+    // app.get("/api/fundamentals/:ticker/series", async (req, res) => {
+    //     try {
+    //         const sym = normalizeSymbol(req.params.ticker);
+    //         const limit = Math.min(Number(req.query.limit) || 16, 40); // max 40 períodos
 
-            // ✅ Resolver CIK desde ticker
-            const cik = await resolveCikFromTicker(sym);
-            const cik10 = String(cik).padStart(10, "0");
+    //         // ✅ Resolver CIK desde ticker
+    //         const cik = await resolveCikFromTicker(sym);
+    //         const cik10 = String(cik).padStart(10, "0");
 
-            // ✅ Fetch CompanyFacts
-            const cf = await fetchCompanyFacts(cik10);
+    //         // ✅ Fetch CompanyFacts
+    //         const cf = await fetchCompanyFacts(cik10);
 
-            // ✅ Extraer serie
-            const series = extractSeriesFromCompanyFacts(sym, cf, limit);
+    //         // ✅ Extraer serie
+    //         const series = extractSeriesFromCompanyFacts(sym, cf, limit);
 
-            if (!series || series.length === 0) {
-                return res.status(404).json({
-                    ok: false,
-                    ticker: sym,
-                    error: "No quarterly data found",
-                    series: []
-                });
-            }
+    //         if (!series || series.length === 0) {
+    //             return res.status(404).json({
+    //                 ok: false,
+    //                 ticker: sym,
+    //                 error: "No quarterly data found",
+    //                 series: []
+    //             });
+    //         }
 
-            res.json({
-                ok: true,
-                ticker: sym,
-                cik: cik10,
-                currency: "USD",
-                scaling: "raw",
-                series,
-                _debug: {
-                    periods_found: series.length
-                }
-            });
-        } catch (e) {
-            console.error("✗ ERROR en fundamentals/series:", e.message);
-            res.status(500).json({
-                ok: false,
-                error: "Fundamentals series error",
-                detail: String(e?.message ?? e)
-            });
-        }
-    });
+    //         res.json({
+    //             ok: true,
+    //             ticker: sym,
+    //             cik: cik10,
+    //             currency: "USD",
+    //             scaling: "raw",
+    //             series,
+    //             _debug: {
+    //                 periods_found: series.length
+    //             }
+    //         });
+    //     } catch (e) {
+    //         console.error("✗ ERROR en fundamentals/series:", e.message);
+    //         res.status(500).json({
+    //             ok: false,
+    //             error: "Fundamentals series error",
+    //             detail: String(e?.message ?? e)
+    //         });
+    //     }
+    // });
 
 
 
