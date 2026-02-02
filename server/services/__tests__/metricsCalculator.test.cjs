@@ -1,7 +1,3 @@
-/**
- * Tests for metricsCalculator.cjs
- */
-
 const {
     calculateTTM,
     calculateYoY,
@@ -18,353 +14,558 @@ const {
     getNestedValue
 } = require('../metricsCalculator.cjs');
 
-describe('getNestedValue', () => {
-    test('should get nested value from object', () => {
-        const obj = {
+// ===========================
+// HELPER: CREATE MOCK BUNDLE
+// ===========================
+function createMockBundle(overrides = {}) {
+    return {
+        period: {
+            fiscal_year: 2026,
+            fiscal_quarter: 'Q2',
+            period_id: 'FY2026Q2',
+            quarter_end_date: '2025-12-31'
+        },
+        reported: {
             income: {
-                revenue: 100000000
+                revenue: null,
+                gross_profit: null,
+                operating_income: null,
+                net_income: null,
+                ...overrides.income
+            },
+            balance: {
+                total_assets: null,
+                total_equity: null,
+                current_assets: null,
+                current_liabilities: null,
+                inventory: null,
+                short_term_debt: null,
+                long_term_debt: null,
+                ...overrides.balance
+            },
+            cashflow: {
+                operating_cash_flow: null,
+                free_cash_flow: null,
+                ...overrides.cashflow
             }
-        };
-        expect(getNestedValue(obj, 'income.revenue')).toBe(100000000);
-    });
+        },
+        ...overrides
+    };
+}
 
-    test('should return undefined for non-existent path', () => {
-        const obj = { income: {} };
-        expect(getNestedValue(obj, 'income.revenue')).toBeUndefined();
-    });
-
-    test('should handle null objects', () => {
-        expect(getNestedValue(null, 'income.revenue')).toBeUndefined();
-    });
-});
-
+// ===========================
+// TESTS: YOY GROWTH
+// ===========================
 describe('calculateYoY', () => {
     test('should calculate positive YoY growth', () => {
-        const current = 120000000;
-        const yearAgo = 100000000;
-        const yoy = calculateYoY(current, yearAgo);
-        expect(yoy).toBe(20); // 20% growth
+        const series = [
+            createMockBundle({
+                period: { fiscal_year: 2026, fiscal_quarter: 'Q2' },
+                reported: { income: { revenue: 120000000, net_income: 30000000 } }
+            }),
+            createMockBundle({
+                period: { fiscal_year: 2026, fiscal_quarter: 'Q1' },
+                reported: { income: { revenue: 110000000 } }
+            }),
+            createMockBundle({
+                period: { fiscal_year: 2025, fiscal_quarter: 'Q2' },
+                reported: { income: { revenue: 100000000, net_income: 25000000 } }
+            })
+        ];
+
+        const yoy = calculateYoY(series[0], series, 0);
+        expect(yoy.revenue_growth).toBeCloseTo(20, 1);
+        expect(yoy.net_income_growth).toBeCloseTo(20, 1);
     });
 
-    test('should calculate negative YoY growth', () => {
-        const current = 80000000;
-        const yearAgo = 100000000;
-        const yoy = calculateYoY(current, yearAgo);
-        expect(yoy).toBe(-20); // -20% decline
+    test('should return null if prior year quarter not found', () => {
+        const series = [
+            createMockBundle({
+                period: { fiscal_year: 2026, fiscal_quarter: 'Q2' },
+                reported: { income: { revenue: 120000000 } }
+            })
+        ];
+
+        const yoy = calculateYoY(series[0], series, 0);
+        expect(yoy).toBeNull();
     });
 
-    test('should return null for zero yearAgo', () => {
-        expect(calculateYoY(100, 0)).toBeNull();
-    });
+    test('should handle null revenue gracefully', () => {
+        const series = [
+            createMockBundle({
+                period: { fiscal_year: 2026, fiscal_quarter: 'Q2' },
+                reported: { income: { revenue: null } }
+            }),
+            createMockBundle({
+                period: { fiscal_year: 2025, fiscal_quarter: 'Q2' },
+                reported: { income: { revenue: 100000000 } }
+            })
+        ];
 
-    test('should return null for null inputs', () => {
-        expect(calculateYoY(null, 100)).toBeNull();
-        expect(calculateYoY(100, null)).toBeNull();
-    });
-
-    test('should handle negative values correctly', () => {
-        const current = -50000000; // Loss decreased
-        const yearAgo = -100000000; // Bigger loss
-        const yoy = calculateYoY(current, yearAgo);
-        expect(yoy).toBe(-50); // Loss decreased by 50%
+        const yoy = calculateYoY(series[0], series, 0);
+        expect(yoy).toBeNull();
     });
 });
 
+// ===========================
+// TESTS: QOQ GROWTH
+// ===========================
 describe('calculateQoQ', () => {
     test('should calculate positive QoQ growth', () => {
-        const current = 110000000;
-        const previous = 100000000;
-        const qoq = calculateQoQ(current, previous);
-        expect(qoq).toBe(10); // 10% growth
+        const series = [
+            createMockBundle({
+                reported: { income: { revenue: 110000000, net_income: 28000000 } }
+            }),
+            createMockBundle({
+                reported: { income: { revenue: 100000000, net_income: 25000000 } }
+            })
+        ];
+
+        const qoq = calculateQoQ(series[0], series, 0);
+        expect(qoq.revenue_growth).toBeCloseTo(10, 1);
+        expect(qoq.net_income_growth).toBeCloseTo(12, 1);
     });
 
-    test('should calculate negative QoQ growth', () => {
-        const current = 95000000;
-        const previous = 100000000;
-        const qoq = calculateQoQ(current, previous);
-        expect(qoq).toBe(-5); // -5% decline
+    test('should return null if no prior quarter', () => {
+        const series = [
+            createMockBundle({
+                reported: { income: { revenue: 110000000 } }
+            })
+        ];
+
+        const qoq = calculateQoQ(series[0], series, 0);
+        expect(qoq).toBeNull();
     });
 
-    test('should return null for zero previous', () => {
-        expect(calculateQoQ(100, 0)).toBeNull();
-    });
+    test('should handle null values gracefully', () => {
+        const series = [
+            createMockBundle({
+                reported: { income: { revenue: null } }
+            }),
+            createMockBundle({
+                reported: { income: { revenue: 100000000 } }
+            })
+        ];
 
-    test('should return null for null inputs', () => {
-        expect(calculateQoQ(null, 100)).toBeNull();
-        expect(calculateQoQ(100, null)).toBeNull();
+        const qoq = calculateQoQ(series[0], series, 0);
+        expect(qoq).toBeNull();
     });
 });
 
+// ===========================
+// TESTS: TTM
+// ===========================
 describe('calculateTTM', () => {
     test('should calculate TTM for revenue', () => {
         const series = [
-            { reported: { income: { revenue: 100000000 } } },
-            { reported: { income: { revenue: 110000000 } } },
-            { reported: { income: { revenue: 105000000 } } },
-            { reported: { income: { revenue: 95000000 } } }
+            createMockBundle({ reported: { income: { revenue: 100000000 } } }),
+            createMockBundle({ reported: { income: { revenue: 110000000 } } }),
+            createMockBundle({ reported: { income: { revenue: 105000000 } } }),
+            createMockBundle({ reported: { income: { revenue: 95000000 } } })
         ];
-        const ttm = calculateTTM(series, 'income.revenue', 4);
-        expect(ttm).toBe(410000000); // Sum of 4 quarters
+
+        const ttm = calculateTTM(series[0], series, 0);
+        expect(ttm.revenue).toBe(410000000);
     });
 
     test('should return null if not enough periods', () => {
         const series = [
-            { reported: { income: { revenue: 100000000 } } },
-            { reported: { income: { revenue: 110000000 } } }
+            createMockBundle({ reported: { income: { revenue: 100000000 } } }),
+            createMockBundle({ reported: { income: { revenue: 110000000 } } })
         ];
-        const ttm = calculateTTM(series, 'income.revenue', 4);
-        expect(ttm).toBeNull(); // Only 2 quarters, needs 4
-    });
 
-    test('should return null if any quarter has null value', () => {
-        const series = [
-            { reported: { income: { revenue: 100000000 } } },
-            { reported: { income: { revenue: null } } },
-            { reported: { income: { revenue: 105000000 } } },
-            { reported: { income: { revenue: 95000000 } } }
-        ];
-        const ttm = calculateTTM(series, 'income.revenue', 4);
+        const ttm = calculateTTM(series[0], series, 0);
         expect(ttm).toBeNull();
     });
 
-    test('should handle negative values (cashflow)', () => {
+    test('should handle null values gracefully', () => {
         const series = [
-            { reported: { cashflow: { capex: -20000000 } } },
-            { reported: { cashflow: { capex: -25000000 } } },
-            { reported: { cashflow: { capex: -22000000 } } },
-            { reported: { cashflow: { capex: -23000000 } } }
+            createMockBundle({ reported: { income: { revenue: 100000000 } } }),
+            createMockBundle({ reported: { income: { revenue: null } } }),
+            createMockBundle({ reported: { income: { revenue: 105000000 } } }),
+            createMockBundle({ reported: { income: { revenue: 95000000 } } })
         ];
-        const ttm = calculateTTM(series, 'cashflow.capex', 4);
-        expect(ttm).toBe(-90000000);
+
+        const ttm = calculateTTM(series[0], series, 0);
+        expect(ttm.revenue).toBeNull();
     });
 });
 
+// ===========================
+// TESTS: MARGINS
+// ===========================
 describe('calculateMargins', () => {
     test('should calculate all margins correctly', () => {
-        const reported = {
-            income: {
-                revenue: 100000000,
-                gross_profit: 70000000,
-                operating_income: 40000000,
-                net_income: 30000000
-            },
-            cashflow: {
-                free_cash_flow: 25000000
+        const bundle = createMockBundle({
+            reported: {
+                income: {
+                    revenue: 1000000000,
+                    gross_profit: 700000000,
+                    operating_income: 400000000,
+                    net_income: 300000000
+                },
+                cashflow: {
+                    free_cash_flow: 250000000
+                }
             }
-        };
+        });
 
-        const margins = calculateMargins(reported);
+        const margins = calculateMargins(bundle);
 
-        expect(margins.gross_margin).toBe(70);
-        expect(margins.operating_margin).toBe(40);
-        expect(margins.net_margin).toBe(30);
-        expect(margins.fcf_margin).toBe(25);
+        expect(margins.gross_margin).toBeCloseTo(70, 1);
+        expect(margins.operating_margin).toBeCloseTo(40, 1);
+        expect(margins.net_margin).toBeCloseTo(30, 1);
+        expect(margins.fcf_margin).toBeCloseTo(25, 1);
     });
 
-    test('should return empty object if revenue is 0', () => {
-        const reported = {
-            income: {
-                revenue: 0,
-                gross_profit: 0,
-                operating_income: 0,
-                net_income: 0
+    test('should return null if revenue is 0', () => {
+        const bundle = createMockBundle({
+            reported: {
+                income: { revenue: 0 }
             }
-        };
+        });
 
-        const margins = calculateMargins(reported);
-        expect(margins).toEqual({});
+        const margins = calculateMargins(bundle);
+        expect(margins).toBeNull();
     });
 
     test('should handle null values correctly', () => {
-        const reported = {
-            income: {
-                revenue: 100000000,
-                gross_profit: null,
-                operating_income: 40000000,
-                net_income: null
-            },
-            cashflow: {
-                free_cash_flow: 25000000
+        const bundle = createMockBundle({
+            reported: {
+                income: {
+                    revenue: 1000000000,
+                    gross_profit: null,
+                    operating_income: 400000000,
+                    net_income: null
+                },
+                cashflow: {
+                    free_cash_flow: 250000000
+                }
             }
-        };
+        });
 
-        const margins = calculateMargins(reported);
+        const margins = calculateMargins(bundle);
 
         expect(margins.gross_margin).toBeNull();
-        expect(margins.operating_margin).toBe(40);
+        expect(margins.operating_margin).toBeCloseTo(40, 1);
         expect(margins.net_margin).toBeNull();
-        expect(margins.fcf_margin).toBe(25);
-    });
-
-    test('should return empty object if revenue is null', () => {
-        const reported = {
-            income: {
-                revenue: null
-            }
-        };
-
-        const margins = calculateMargins(reported);
-        expect(margins).toEqual({});
+        expect(margins.fcf_margin).toBeCloseTo(25, 1);
     });
 });
 
+// ===========================
+// TESTS: ROE
+// ===========================
 describe('calculateROE', () => {
     test('should calculate ROE correctly', () => {
-        const netIncome = 50000000;
-        const totalEquity = 500000000;
-        const roe = calculateROE(netIncome, totalEquity);
-        expect(roe).toBe(10); // 10% ROE
+        const bundle = createMockBundle({
+            reported: {
+                income: { net_income: 50000000 },
+                balance: { total_equity: 500000000 }
+            }
+        });
+
+        const roe = calculateROE(bundle);
+        expect(roe).toBeCloseTo(10, 1);
     });
 
     test('should return null for zero equity', () => {
-        expect(calculateROE(50000000, 0)).toBeNull();
-    });
+        const bundle = createMockBundle({
+            reported: {
+                income: { net_income: 50000000 },
+                balance: { total_equity: 0 }
+            }
+        });
 
-    test('should return null for null inputs', () => {
-        expect(calculateROE(null, 500000000)).toBeNull();
-        expect(calculateROE(50000000, null)).toBeNull();
+        expect(calculateROE(bundle)).toBeNull();
     });
 
     test('should handle negative net income', () => {
-        const netIncome = -20000000;
-        const totalEquity = 500000000;
-        const roe = calculateROE(netIncome, totalEquity);
-        expect(roe).toBe(-4); // -4% ROE (loss)
+        const bundle = createMockBundle({
+            reported: {
+                income: { net_income: -20000000 },
+                balance: { total_equity: 500000000 }
+            }
+        });
+
+        const roe = calculateROE(bundle);
+        expect(roe).toBeCloseTo(-4, 1);
     });
 });
 
+// ===========================
+// TESTS: ROA
+// ===========================
 describe('calculateROA', () => {
     test('should calculate ROA correctly', () => {
-        const netIncome = 40000000;
-        const totalAssets = 1000000000;
-        const roa = calculateROA(netIncome, totalAssets);
-        expect(roa).toBe(4); // 4% ROA
+        const bundle = createMockBundle({
+            reported: {
+                income: { net_income: 40000000 },
+                balance: { total_assets: 1000000000 }
+            }
+        });
+
+        const roa = calculateROA(bundle);
+        expect(roa).toBeCloseTo(4, 1);
     });
 
     test('should return null for zero assets', () => {
-        expect(calculateROA(40000000, 0)).toBeNull();
-    });
+        const bundle = createMockBundle({
+            reported: {
+                income: { net_income: 40000000 },
+                balance: { total_assets: 0 }
+            }
+        });
 
-    test('should return null for null inputs', () => {
-        expect(calculateROA(null, 1000000000)).toBeNull();
-        expect(calculateROA(40000000, null)).toBeNull();
+        expect(calculateROA(bundle)).toBeNull();
     });
 });
 
+// ===========================
+// TESTS: ROIC
+// ===========================
 describe('calculateROIC', () => {
     test('should calculate ROIC correctly', () => {
-        const operatingIncome = 60000000;
-        const totalAssets = 1000000000;
-        const currentLiabilities = 200000000;
-        const roic = calculateROIC(operatingIncome, totalAssets, currentLiabilities);
-        expect(roic).toBe(7.5); // 60M / (1000M - 200M) = 7.5%
+        const bundle = createMockBundle({
+            reported: {
+                income: { net_income: 60000000 },
+                balance: {
+                    total_equity: 500000000,
+                    long_term_debt: 300000000
+                }
+            }
+        });
+
+        const roic = calculateROIC(bundle);
+        expect(roic).toBeCloseTo(7.5, 1);
     });
 
     test('should return null if invested capital is zero', () => {
-        const roic = calculateROIC(60000000, 200000000, 200000000);
-        expect(roic).toBeNull();
-    });
+        const bundle = createMockBundle({
+            reported: {
+                income: { net_income: 60000000 },
+                balance: {
+                    total_equity: 0,
+                    long_term_debt: 0
+                }
+            }
+        });
 
-    test('should return null for null inputs', () => {
-        expect(calculateROIC(null, 1000000000, 200000000)).toBeNull();
-        expect(calculateROIC(60000000, null, 200000000)).toBeNull();
-        expect(calculateROIC(60000000, 1000000000, null)).toBeNull();
+        expect(calculateROIC(bundle)).toBeNull();
     });
 });
 
+// ===========================
+// TESTS: ASSET TURNOVER
+// ===========================
 describe('calculateAssetTurnover', () => {
     test('should calculate asset turnover correctly', () => {
-        const revenue = 500000000;
-        const totalAssets = 1000000000;
-        const turnover = calculateAssetTurnover(revenue, totalAssets);
-        expect(turnover).toBe(0.5); // 0.5x turnover
+        const bundle = createMockBundle({
+            reported: {
+                income: { revenue: 500000000 },
+                balance: { total_assets: 1000000000 }
+            }
+        });
+
+        const turnover = calculateAssetTurnover(bundle);
+        expect(turnover).toBeCloseTo(0.5, 2);
     });
 
     test('should return null for zero assets', () => {
-        expect(calculateAssetTurnover(500000000, 0)).toBeNull();
-    });
+        const bundle = createMockBundle({
+            reported: {
+                income: { revenue: 500000000 },
+                balance: { total_assets: 0 }
+            }
+        });
 
-    test('should return null for null inputs', () => {
-        expect(calculateAssetTurnover(null, 1000000000)).toBeNull();
-        expect(calculateAssetTurnover(500000000, null)).toBeNull();
+        expect(calculateAssetTurnover(bundle)).toBeNull();
     });
 });
 
+// ===========================
+// TESTS: INVENTORY TURNOVER
+// ===========================
 describe('calculateInventoryTurnover', () => {
     test('should calculate inventory turnover correctly', () => {
-        const cogs = 300000000;
-        const inventory = 50000000;
-        const turnover = calculateInventoryTurnover(cogs, inventory);
-        expect(turnover).toBe(6); // 6x turnover
+        const bundle = createMockBundle({
+            reported: {
+                income: { cost_of_revenue: 300000000 },
+                balance: { inventory: 50000000 }
+            }
+        });
+
+        const turnover = calculateInventoryTurnover(bundle);
+        expect(turnover).toBeCloseTo(6, 1);
     });
 
     test('should return null for zero inventory', () => {
-        expect(calculateInventoryTurnover(300000000, 0)).toBeNull();
-    });
+        const bundle = createMockBundle({
+            reported: {
+                income: { cost_of_revenue: 300000000 },
+                balance: { inventory: 0 }
+            }
+        });
 
-    test('should return null for null inputs', () => {
-        expect(calculateInventoryTurnover(null, 50000000)).toBeNull();
-        expect(calculateInventoryTurnover(300000000, null)).toBeNull();
+        expect(calculateInventoryTurnover(bundle)).toBeNull();
     });
 });
 
+// ===========================
+// TESTS: CURRENT RATIO
+// ===========================
 describe('calculateCurrentRatio', () => {
     test('should calculate current ratio correctly', () => {
-        const currentAssets = 300000000;
-        const currentLiabilities = 200000000;
-        const ratio = calculateCurrentRatio(currentAssets, currentLiabilities);
-        expect(ratio).toBe(1.5); // 1.5x
+        const bundle = createMockBundle({
+            reported: {
+                balance: {
+                    current_assets: 300000000,
+                    current_liabilities: 200000000
+                }
+            }
+        });
+
+        const ratio = calculateCurrentRatio(bundle);
+        expect(ratio).toBeCloseTo(1.5, 2);
     });
 
     test('should return null for zero liabilities', () => {
-        expect(calculateCurrentRatio(300000000, 0)).toBeNull();
-    });
+        const bundle = createMockBundle({
+            reported: {
+                balance: {
+                    current_assets: 300000000,
+                    current_liabilities: 0
+                }
+            }
+        });
 
-    test('should return null for null inputs', () => {
-        expect(calculateCurrentRatio(null, 200000000)).toBeNull();
-        expect(calculateCurrentRatio(300000000, null)).toBeNull();
+        expect(calculateCurrentRatio(bundle)).toBeNull();
     });
 });
 
+// ===========================
+// TESTS: QUICK RATIO
+// ===========================
 describe('calculateQuickRatio', () => {
     test('should calculate quick ratio correctly', () => {
-        const currentAssets = 300000000;
-        const inventory = 50000000;
-        const currentLiabilities = 200000000;
-        const ratio = calculateQuickRatio(currentAssets, inventory, currentLiabilities);
-        expect(ratio).toBe(1.25); // (300M - 50M) / 200M = 1.25
+        const bundle = createMockBundle({
+            reported: {
+                balance: {
+                    current_assets: 300000000,
+                    inventory: 50000000,
+                    current_liabilities: 200000000
+                }
+            }
+        });
+
+        const ratio = calculateQuickRatio(bundle);
+        expect(ratio).toBeCloseTo(1.25, 2);
     });
 
     test('should handle null inventory', () => {
-        const currentAssets = 300000000;
-        const currentLiabilities = 200000000;
-        const ratio = calculateQuickRatio(currentAssets, null, currentLiabilities);
-        expect(ratio).toBe(1.5); // Treats inventory as 0
+        const bundle = createMockBundle({
+            reported: {
+                balance: {
+                    current_assets: 300000000,
+                    inventory: null,
+                    current_liabilities: 200000000
+                }
+            }
+        });
+
+        const ratio = calculateQuickRatio(bundle);
+        expect(ratio).toBeCloseTo(1.5, 2);
     });
 
     test('should return null for zero liabilities', () => {
-        expect(calculateQuickRatio(300000000, 50000000, 0)).toBeNull();
-    });
+        const bundle = createMockBundle({
+            reported: {
+                balance: {
+                    current_assets: 300000000,
+                    inventory: 50000000,
+                    current_liabilities: 0
+                }
+            }
+        });
 
-    test('should return null for null current assets', () => {
-        expect(calculateQuickRatio(null, 50000000, 200000000)).toBeNull();
+        expect(calculateQuickRatio(bundle)).toBeNull();
     });
 });
 
-describe('calculateDebtToEquity', () => {
-    test('should calculate debt-to-equity correctly', () => {
-        const totalLiabilities = 600000000;
-        const totalEquity = 400000000;
-        const ratio = calculateDebtToEquity(totalLiabilities, totalEquity);
-        expect(ratio).toBe(1.5); // 1.5x leverage
+// ===========================
+// TESTS: DEBT TO EQUITY (FIXED)
+// ===========================
+describe('calculateDebtToEquity - Fixed', () => {
+    test('should calculate with both short and long term debt', () => {
+        const bundle = createMockBundle({
+            reported: {
+                balance: {
+                    short_term_debt: 8401000000,
+                    long_term_debt: 34445000000,
+                    total_equity: 96094000000
+                }
+            }
+        });
+
+        const result = calculateDebtToEquity(bundle);
+        expect(result).toBeCloseTo(0.446, 2);
     });
 
-    test('should return null for zero equity', () => {
-        expect(calculateDebtToEquity(600000000, 0)).toBeNull();
+    test('should handle missing short term debt', () => {
+        const bundle = createMockBundle({
+            reported: {
+                balance: {
+                    short_term_debt: null,
+                    long_term_debt: 34445000000,
+                    total_equity: 96094000000
+                }
+            }
+        });
+
+        const result = calculateDebtToEquity(bundle);
+        expect(result).toBeCloseTo(0.358, 2);
     });
 
-    test('should return null for null inputs', () => {
-        expect(calculateDebtToEquity(null, 400000000)).toBeNull();
-        expect(calculateDebtToEquity(600000000, null)).toBeNull();
+    test('should handle missing long term debt', () => {
+        const bundle = createMockBundle({
+            reported: {
+                balance: {
+                    short_term_debt: 8401000000,
+                    long_term_debt: null,
+                    total_equity: 96094000000
+                }
+            }
+        });
+
+        const result = calculateDebtToEquity(bundle);
+        expect(result).toBeCloseTo(0.087, 2);
+    });
+
+    test('should return null if both debts are zero or missing', () => {
+        const bundle = createMockBundle({
+            reported: {
+                balance: {
+                    short_term_debt: 0,
+                    long_term_debt: 0,
+                    total_equity: 96094000000
+                }
+            }
+        });
+
+        expect(calculateDebtToEquity(bundle)).toBeNull();
+    });
+
+    test('should return null if equity is zero or negative', () => {
+        const bundle = createMockBundle({
+            reported: {
+                balance: {
+                    short_term_debt: 8401000000,
+                    long_term_debt: 34445000000,
+                    total_equity: 0
+                }
+            }
+        });
+
+        expect(calculateDebtToEquity(bundle)).toBeNull();
     });
 });

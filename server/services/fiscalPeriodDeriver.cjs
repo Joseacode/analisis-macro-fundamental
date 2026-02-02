@@ -47,27 +47,25 @@ function deriveFiscalPeriod(endDate, fiscalYearEndMonth) {
 }
 
 /**
- * Valida delta entre filing date y quarter end date
- * @param {string} filingDate
- * @param {string} quarterEndDate
- * @returns {number|null} días entre filing y end (positivo si filing > end), null si inválido
+ * Valida el delta entre filing date y quarter end date
+ * @param {string} quarterEndDate - Quarter end date (YYYY-MM-DD)
+ * @param {string} filingDate - Filing date (YYYY-MM-DD)
+ * @returns {number|null} - Days between (positive = filing after end, negative = filing before end)
  */
-function validateFilingDelta(filingDate, quarterEndDate) {
-    // Validar inputs antes de crear Date objects
-    if (!filingDate || !quarterEndDate) {
-        return null;
-    }
+function validateFilingDelta(quarterEndDate, filingDate) {
+    if (!quarterEndDate || !filingDate) return null;
 
-    const filing = new Date(filingDate);
     const end = new Date(quarterEndDate);
+    const filed = new Date(filingDate);
 
-    if (isNaN(filing.getTime()) || isNaN(end.getTime())) {
-        return null;
-    }
+    if (isNaN(end.getTime()) || isNaN(filed.getTime())) return null;
 
-    const deltaDays = Math.round((filing - end) / (1000 * 60 * 60 * 24));
+    // ✅ FIX: filing - end (positivo = filing después del quarter end)
+    const deltaDays = Math.round((filed - end) / (1000 * 60 * 60 * 24));
+
     return deltaDays;
 }
+
 
 /**
  * Detecta fiscal year end month de una empresa

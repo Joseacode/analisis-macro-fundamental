@@ -110,29 +110,34 @@ describe('deriveFiscalPeriod', () => {
 
 describe('validateFilingDelta', () => {
     test('Normal case (filing 30 days after end)', () => {
-        expect(validateFilingDelta('2026-01-30', '2025-12-31')).toBe(30);
+        // ✅ FIX: Orden correcto (end, filed)
+        expect(validateFilingDelta('2025-12-31', '2026-01-30')).toBe(30);
     });
 
     test('Filing 45 days after end (within normal range)', () => {
-        expect(validateFilingDelta('2026-02-14', '2025-12-31')).toBe(45);
+        expect(validateFilingDelta('2025-12-31', '2026-02-14')).toBe(45);
     });
 
     test('Filing before end (negative - warning)', () => {
-        expect(validateFilingDelta('2025-12-15', '2025-12-31')).toBe(-16);
+        expect(validateFilingDelta('2025-12-31', '2025-12-15')).toBe(-16);
     });
 
     test('Filing delayed (>60 days - warning)', () => {
-        expect(validateFilingDelta('2026-03-15', '2025-12-31')).toBe(74);
+        expect(validateFilingDelta('2025-12-31', '2026-03-15')).toBe(74);
     });
 
     test('Same day filing', () => {
         expect(validateFilingDelta('2025-12-31', '2025-12-31')).toBe(0);
     });
 
-    test('Invalid dates return null', () => {
-        expect(validateFilingDelta('invalid', '2025-12-31')).toBeNull();
+    test('Invalid date should return null', () => {
+        expect(validateFilingDelta('invalid', '2026-01-30')).toBeNull();
         expect(validateFilingDelta('2025-12-31', 'invalid')).toBeNull();
-        expect(validateFilingDelta(null, '2025-12-31')).toBeNull();
+    });
+
+    test('Null inputs should return null', () => {
+        expect(validateFilingDelta(null, '2026-01-30')).toBeNull();
+        expect(validateFilingDelta('2025-12-31', null)).toBeNull();
     });
 });
 

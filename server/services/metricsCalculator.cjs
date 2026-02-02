@@ -1,377 +1,275 @@
 /**
- * Metrics Calculator
- * Calcula TTM, growth rates, margins, ratios desde series de quarters
+ * metricsCalculator.cjs
+ * Calculates derived financial metrics (TTM, YoY, QoQ, margins, ratios)
  */
 
-/**
- * Calcula Trailing Twelve Months para una métrica
- * @param {Array} series - Array de bundles ordenados desc por date
- * @param {string} path - Path a la métrica (ej: 'income.revenue')
- * @param {number} periods - Número de períodos a sumar (default: 4)
- * @returns {number|null}
- */
-function calculateTTM(series, path, periods = 4) {
-    if (!series || series.length < periods) return null;
+// ===========================
+// HELPER: GET NESTED VALUE
+// ===========================
+function getNestedValue(obj, path) {
+    return path.split('.').reduce((current, key) => current?.[key], obj);
+}
 
-    const recentQuarters = series.slice(0, periods);
+// ===========================
+// TTM CALCULATIONS
+// ===========================
+function calculateTTM(bundle, series, currentIndex) {
+    if (currentIndex + 3 >= series.length) return null;
 
-    let sum = 0;
-    let hasData = false;
+    const quarters = series.slice(currentIndex, currentIndex + 4);
 
-    for (const quarter of recentQuarters) {
-        const value = getNestedValue(quarter.reported, path);
-        if (value === null || value === undefined) return null;
-        sum += value;
-        hasData = true;
+    // Verificar que sean 4 quarters consecutivos
+    if (quarters.length !== 4) return null;
+
+    const ttmMetrics = {
+        revenue: null,
+        net_income: null,
+        operating_income: null,
+        operating_cash_flow: null,
+        free_cash_flow: null
+    };
+
+    const paths = {
+        revenue: 'reported.income.revenue',
+        net_income: 'reported.income.net_income',
+        operating_income: 'reported.income.operating_income',
+        operating_cash_flow: 'reported.cashflow.operating_cash_flow',
+        free_cash_flow: 'reported.cashflow.free_cash_flow'
+    };
+
+    for (const [key, path] of Object.entries(paths)) {
+        const values = quarters.map(q => getNestedValue(q, path)).filter(v => v != null);
+        if (values.length === 4) {
+            ttmMetrics[key] = values.reduce((sum, val) => sum + val, 0);
+        }
     }
 
-    return hasData ? sum : null;
+    return ttmMetrics;
 }
 
-/**
- * Calcula Year-over-Year growth
- * @param {number} current - Valor actual
- * @param {number} yearAgo - Valor hace 1 año (4 quarters atrás)
- * @returns {number|null} - Porcentaje de crecimiento
- */
-/**
- * Calcula Year-over-Year growth
- * @param {number} current - Valor actual
- * @param {number} yearAgo - Valor hace 1 año (4 quarters atrás)
- * @returns {number|null} - Porcentaje de crecimiento
- */
-function calculateYoY(current, yearAgo) {
-    if (current == null || yearAgo == null || yearAgo === 0) return null;
-    return ((current - yearAgo) / yearAgo) * 100;
-}
+// ===========================
+// YOY GROWTH CALCULATIONS
+// ===========================
+function calculateYoY(bundle, series, currentIndex) {
+    const currentPeriod = bundle.period;
+    if (!currentPeriod?.fiscal_quarter) return null;
 
+    // Buscar mismo quarter del año anterior
+    const targetFY = currentPeriod.fiscal_year - 1;
+    const targetQ = currentPeriod.fiscal_quarter;
 
-/**
- * Calcula Quarter-over-Quarter growth
- * @param {number} current - Valor actual
- * @param {number} previous - Valor quarter anterior
- * @returns {number|null} - Porcentaje de crecimiento
- */
-function calculateQoQ(current, previous) {
-    if (current == null || previous == null || previous === 0) return null;
-    return ((current - previous) / previous) * 100;
-}
+    const priorYearQuarter = series.find(q =>
+        q.period?.fiscal_year === targetFY &&
+        q.period?.fiscal_quarter === targetQ
+    );
 
-/**
- * Calcula YoY para una serie completa
- * @param {Array} series - Array de bundles ordenados desc
- * @param {string} path - Path a la métrica
- * @returns {Array} - Series con yoy_growth agregado
- */
-function addYoYToSeries(series, path) {
-    return series.map((quarter, index) => {
-        const current = getNestedValue(quarter.reported, path);
-        const yearAgoIndex = index + 4; // 4 quarters = 1 year
+    if (!priorYearQuarter) return null;
 
-        if (yearAgoIndex >= series.length) {
-            return { ...quarter, yoy_growth: null };
+    const yoyMetrics = {};
+    const metrics = ['revenue', 'net_income', 'operating_income', 'eps_diluted'];
+
+    for (const metric of metrics) {
+        const current = getNestedValue(bundle, `reported.income.${metric}`);
+        const prior = getNestedValue(priorYearQuarter, `reported.income.${metric}`);
+
+        if (current != null && prior != null && prior !== 0) {
+            yoyMetrics[`${metric}_growth`] = ((current - prior) / Math.abs(prior)) * 100;
         }
+    }
 
-        const yearAgo = getNestedValue(series[yearAgoIndex].reported, path);
-        const yoy = calculateYoY(current, yearAgo);
-
-        return {
-            ...quarter,
-            computed: {
-                ...(quarter.computed || {}),
-                [`${path.replace(/\./g, '_')}_yoy`]: yoy
-            }
-        };
-    });
+    return Object.keys(yoyMetrics).length > 0 ? yoyMetrics : null;
 }
 
-/**
- * Calcula QoQ para una serie completa
- * @param {Array} series - Array de bundles ordenados desc
- * @param {string} path - Path a la métrica
- * @returns {Array} - Series con qoq_growth agregado
- */
-function addQoQToSeries(series, path) {
-    return series.map((quarter, index) => {
-        const current = getNestedValue(quarter.reported, path);
+// ===========================
+// QOQ GROWTH CALCULATIONS
+// ===========================
+function calculateQoQ(bundle, series, currentIndex) {
+    if (currentIndex + 1 >= series.length) return null;
 
-        if (index === 0) {
-            return { ...quarter, qoq_growth: null }; // Primer quarter no tiene anterior
+    const priorQuarter = series[currentIndex + 1];
+    if (!priorQuarter) return null;
+
+    const qoqMetrics = {};
+    const metrics = ['revenue', 'net_income', 'operating_income'];
+
+    for (const metric of metrics) {
+        const current = getNestedValue(bundle, `reported.income.${metric}`);
+        const prior = getNestedValue(priorQuarter, `reported.income.${metric}`);
+
+        if (current != null && prior != null && prior !== 0) {
+            qoqMetrics[`${metric}_growth`] = ((current - prior) / Math.abs(prior)) * 100;
         }
+    }
 
-        const previous = getNestedValue(series[index - 1].reported, path);
-        const qoq = calculateQoQ(current, previous);
-
-        return {
-            ...quarter,
-            computed: {
-                ...(quarter.computed || {}),
-                [`${path.replace(/\./g, '_')}_qoq`]: qoq
-            }
-        };
-    });
+    return Object.keys(qoqMetrics).length > 0 ? qoqMetrics : null;
 }
 
-/**
- * Calcula margins para un quarter
- * @param {Object} reported - Objeto reported de un bundle
- * @returns {Object} - Margins calculados
- */
-function calculateMargins(reported) {
-    const revenue = reported?.income?.revenue;
-    const grossProfit = reported?.income?.gross_profit;
-    const operatingIncome = reported?.income?.operating_income;
-    const netIncome = reported?.income?.net_income;
-    const fcf = reported?.cashflow?.free_cash_flow;
+// ===========================
+// MARGIN CALCULATIONS
+// ===========================
+function calculateMargins(bundle) {
+    const revenue = getNestedValue(bundle, 'reported.income.revenue');
+    const grossProfit = getNestedValue(bundle, 'reported.income.gross_profit');
+    const operatingIncome = getNestedValue(bundle, 'reported.income.operating_income');
+    const netIncome = getNestedValue(bundle, 'reported.income.net_income');
+    const fcf = getNestedValue(bundle, 'reported.cashflow.free_cash_flow');
 
-    if (!revenue || revenue === 0) return {};
+    if (!revenue || revenue <= 0) return null;
 
     return {
-        gross_margin: grossProfit !== null ? (grossProfit / revenue) * 100 : null,
-        operating_margin: operatingIncome !== null ? (operatingIncome / revenue) * 100 : null,
-        net_margin: netIncome !== null ? (netIncome / revenue) * 100 : null,
-        fcf_margin: fcf !== null ? (fcf / revenue) * 100 : null
+        gross_margin: grossProfit != null ? (grossProfit / revenue) * 100 : null,
+        operating_margin: operatingIncome != null ? (operatingIncome / revenue) * 100 : null,
+        net_margin: netIncome != null ? (netIncome / revenue) * 100 : null,
+        fcf_margin: fcf != null ? (fcf / revenue) * 100 : null
     };
 }
 
-/**
- * Calcula ROE (Return on Equity)
- * @param {number} netIncome - Net income (quarterly or TTM)
- * @param {number} totalEquity - Total equity (point in time)
- * @returns {number|null} - ROE en %
- */
-function calculateROE(netIncome, totalEquity) {
-    if (!netIncome || !totalEquity || totalEquity === 0) return null;
-    return (netIncome / totalEquity) * 100;
+// ===========================
+// RETURN CALCULATIONS
+// ===========================
+function calculateROE(bundle) {
+    const netIncome = getNestedValue(bundle, 'reported.income.net_income');
+    const equity = getNestedValue(bundle, 'reported.balance.total_equity');
+
+    if (!netIncome || !equity || equity <= 0) return null;
+
+    return (netIncome / equity) * 100;
 }
 
-/**
- * Calcula ROA (Return on Assets)
- * @param {number} netIncome - Net income (quarterly or TTM)
- * @param {number} totalAssets - Total assets (point in time)
- * @returns {number|null} - ROA en %
- */
-function calculateROA(netIncome, totalAssets) {
-    if (!netIncome || !totalAssets || totalAssets === 0) return null;
-    return (netIncome / totalAssets) * 100;
+function calculateROA(bundle) {
+    const netIncome = getNestedValue(bundle, 'reported.income.net_income');
+    const assets = getNestedValue(bundle, 'reported.balance.total_assets');
+
+    if (!netIncome || !assets || assets <= 0) return null;
+
+    return (netIncome / assets) * 100;
 }
 
-/**
- * Calcula ROIC (Return on Invested Capital)
- * @param {number} operatingIncome - Operating income después de tax
- * @param {number} totalAssets - Total assets
- * @param {number} currentLiabilities - Current liabilities
- * @returns {number|null} - ROIC en %
- */
-function calculateROIC(operatingIncome, totalAssets, currentLiabilities) {
-    if (!operatingIncome || !totalAssets || currentLiabilities === null) return null;
+function calculateROIC(bundle) {
+    const netIncome = getNestedValue(bundle, 'reported.income.net_income');
+    const equity = getNestedValue(bundle, 'reported.balance.total_equity');
+    const ltDebt = getNestedValue(bundle, 'reported.balance.long_term_debt') || 0;
 
-    const investedCapital = totalAssets - currentLiabilities;
-    if (investedCapital === 0) return null;
+    const investedCapital = (equity || 0) + ltDebt;
 
-    return (operatingIncome / investedCapital) * 100;
+    if (!netIncome || investedCapital <= 0) return null;
+
+    return (netIncome / investedCapital) * 100;
 }
 
-/**
- * Calcula asset turnover (eficiencia)
- * @param {number} revenue - Revenue (quarterly or TTM)
- * @param {number} totalAssets - Total assets
- * @returns {number|null} - Asset turnover ratio
- */
-function calculateAssetTurnover(revenue, totalAssets) {
-    if (!revenue || !totalAssets || totalAssets === 0) return null;
-    return revenue / totalAssets;
+function calculateReturns(bundle) {
+    return {
+        roe: calculateROE(bundle),
+        roa: calculateROA(bundle),
+        roic: calculateROIC(bundle)
+    };
 }
 
-/**
- * Calcula inventory turnover
- * @param {number} costOfRevenue - COGS (quarterly or TTM)
- * @param {number} inventory - Inventory (point in time)
- * @returns {number|null} - Inventory turnover ratio
- */
-function calculateInventoryTurnover(costOfRevenue, inventory) {
-    if (!costOfRevenue || !inventory || inventory === 0) return null;
-    return costOfRevenue / inventory;
+// ===========================
+// EFFICIENCY CALCULATIONS
+// ===========================
+function calculateAssetTurnover(bundle) {
+    const revenue = getNestedValue(bundle, 'reported.income.revenue');
+    const assets = getNestedValue(bundle, 'reported.balance.total_assets');
+
+    if (!revenue || !assets || assets <= 0) return null;
+
+    return revenue / assets;
 }
 
-/**
- * Calcula Current Ratio (liquidez)
- * @param {number} currentAssets
- * @param {number} currentLiabilities
- * @returns {number|null}
- */
-function calculateCurrentRatio(currentAssets, currentLiabilities) {
-    if (!currentAssets || !currentLiabilities || currentLiabilities === 0) return null;
-    return currentAssets / currentLiabilities;
+function calculateInventoryTurnover(bundle) {
+    const cogs = getNestedValue(bundle, 'reported.income.cost_of_revenue');
+    const inventory = getNestedValue(bundle, 'reported.balance.inventory');
+
+    if (!cogs || !inventory || inventory <= 0) return null;
+
+    return cogs / inventory;
 }
 
-/**
- * Calcula Quick Ratio (acid test)
- * @param {number} currentAssets
- * @param {number} inventory
- * @param {number} currentLiabilities
- * @returns {number|null}
- */
-function calculateQuickRatio(currentAssets, inventory, currentLiabilities) {
-    if (!currentAssets || currentLiabilities === 0) return null;
-    const quickAssets = currentAssets - (inventory || 0);
-    return quickAssets / currentLiabilities;
+function calculateEfficiency(bundle) {
+    return {
+        asset_turnover: calculateAssetTurnover(bundle),
+        inventory_turnover: calculateInventoryTurnover(bundle)
+    };
 }
 
-/**
- * Calcula Debt-to-Equity ratio
- * @param {number} totalLiabilities
- * @param {number} totalEquity
- * @returns {number|null}
- */
-function calculateDebtToEquity(totalLiabilities, totalEquity) {
-    if (!totalLiabilities || !totalEquity || totalEquity === 0) return null;
-    return totalLiabilities / totalEquity;
+// ===========================
+// LIQUIDITY CALCULATIONS
+// ===========================
+function calculateCurrentRatio(bundle) {
+    const currentAssets = getNestedValue(bundle, 'reported.balance.current_assets');
+    const currentLiab = getNestedValue(bundle, 'reported.balance.current_liabilities');
+
+    if (!currentAssets || !currentLiab || currentLiab <= 0) return null;
+
+    return currentAssets / currentLiab;
 }
 
-/**
- * Agrega todas las métricas computadas a un bundle
- * @param {Object} bundle - Bundle con period + reported
- * @param {Array} fullSeries - Serie completa para TTM calculations
- * @param {number} indexInSeries - Índice del bundle en la serie
- * @returns {Object} - Bundle con computed metrics agregados
- */
-function addComputedMetrics(bundle, fullSeries, indexInSeries) {
-    const reported = bundle.reported;
+function calculateQuickRatio(bundle) {
+    const currentAssets = getNestedValue(bundle, 'reported.balance.current_assets');
+    const inventory = getNestedValue(bundle, 'reported.balance.inventory') || 0;
+    const currentLiab = getNestedValue(bundle, 'reported.balance.current_liabilities');
 
-    // Margins
-    const margins = calculateMargins(reported);
+    if (!currentAssets || !currentLiab || currentLiab <= 0) return null;
 
-    // Return metrics (usando valores del quarter actual)
-    const roe = calculateROE(
-        reported.income?.net_income,
-        reported.balance?.total_equity
-    );
+    return (currentAssets - inventory) / currentLiab;
+}
 
-    const roa = calculateROA(
-        reported.income?.net_income,
-        reported.balance?.total_assets
-    );
+function calculateLiquidity(bundle) {
+    return {
+        current_ratio: calculateCurrentRatio(bundle),
+        quick_ratio: calculateQuickRatio(bundle)
+    };
+}
 
-    const roic = calculateROIC(
-        reported.income?.operating_income,
-        reported.balance?.total_assets,
-        reported.balance?.current_liabilities
-    );
+// ===========================
+// ✅ FIX: LEVERAGE CALCULATIONS (DEBT/EQUITY)
+// ===========================
+function calculateDebtToEquity(bundle) {
+    const stDebt = getNestedValue(bundle, 'reported.balance.short_term_debt') || 0;
+    const ltDebt = getNestedValue(bundle, 'reported.balance.long_term_debt') || 0;
+    const equity = getNestedValue(bundle, 'reported.balance.total_equity');
 
-    // Efficiency ratios
-    const assetTurnover = calculateAssetTurnover(
-        reported.income?.revenue,
-        reported.balance?.total_assets
-    );
+    // ✅ FIX: Calcular total debt aunque una de las dos falte
+    const totalDebt = stDebt + ltDebt;
 
-    const inventoryTurnover = calculateInventoryTurnover(
-        reported.income?.cost_of_revenue,
-        reported.balance?.inventory
-    );
+    if (totalDebt === 0) return null;
+    if (!equity || equity <= 0) return null;
 
-    // Liquidity ratios
-    const currentRatio = calculateCurrentRatio(
-        reported.balance?.current_assets,
-        reported.balance?.current_liabilities
-    );
+    return totalDebt / equity;
+}
 
-    const quickRatio = calculateQuickRatio(
-        reported.balance?.current_assets,
-        reported.balance?.inventory,
-        reported.balance?.current_liabilities
-    );
+function calculateLeverage(bundle) {
+    return {
+        debt_to_equity: calculateDebtToEquity(bundle)
+    };
+}
 
-    // Leverage
-    const debtToEquity = calculateDebtToEquity(
-        reported.balance?.total_liabilities,
-        reported.balance?.total_equity
-    );
-
-    // YoY growth (si hay datos de hace 1 año)
-    let yoyGrowth = {};
-    if (indexInSeries + 4 < fullSeries.length) {
-        const yearAgo = fullSeries[indexInSeries + 4];
-        yoyGrowth = {
-            revenue_yoy: calculateYoY(
-                reported.income?.revenue,
-                yearAgo.reported.income?.revenue
-            ),
-            operating_income_yoy: calculateYoY(
-                reported.income?.operating_income,
-                yearAgo.reported.income?.operating_income
-            ),
-            net_income_yoy: calculateYoY(
-                reported.income?.net_income,
-                yearAgo.reported.income?.net_income
-            ),
-            eps_yoy: calculateYoY(
-                reported.income?.eps_diluted,
-                yearAgo.reported.income?.eps_diluted
-            )
-        };
-    }
-
-    // QoQ growth (si hay quarter anterior)
-    let qoqGrowth = {};
-    if (indexInSeries > 0) {
-        const prevQuarter = fullSeries[indexInSeries - 1];
-        qoqGrowth = {
-            revenue_qoq: calculateQoQ(
-                reported.income?.revenue,
-                prevQuarter.reported.income?.revenue
-            ),
-            operating_income_qoq: calculateQoQ(
-                reported.income?.operating_income,
-                prevQuarter.reported.income?.operating_income
-            ),
-            net_income_qoq: calculateQoQ(
-                reported.income?.net_income,
-                prevQuarter.reported.income?.net_income
-            )
-        };
-    }
-
-    // TTM (si hay 4+ quarters)
-    let ttm = {};
-    if (fullSeries.length >= 4) {
-        const last4 = fullSeries.slice(indexInSeries, indexInSeries + 4);
-        if (last4.length === 4) {
-            ttm = {
-                revenue_ttm: calculateTTM(fullSeries.slice(indexInSeries), 'income.revenue', 4),
-                operating_income_ttm: calculateTTM(fullSeries.slice(indexInSeries), 'income.operating_income', 4),
-                net_income_ttm: calculateTTM(fullSeries.slice(indexInSeries), 'income.net_income', 4),
-                operating_cash_flow_ttm: calculateTTM(fullSeries.slice(indexInSeries), 'cashflow.operating_cash_flow', 4),
-                free_cash_flow_ttm: calculateTTM(fullSeries.slice(indexInSeries), 'cashflow.free_cash_flow', 4)
-            };
-        }
-    }
+// ===========================
+// MASTER FUNCTION
+// ===========================
+function addComputedMetrics(bundle, series, index) {
+    const computed = {
+        margins: calculateMargins(bundle),
+        returns: calculateReturns(bundle),
+        efficiency: calculateEfficiency(bundle),
+        liquidity: calculateLiquidity(bundle),
+        leverage: calculateLeverage(bundle),
+        growth: {
+            yoy: calculateYoY(bundle, series, index) || {},
+            qoq: calculateQoQ(bundle, series, index) || {}
+        },
+        ttm: calculateTTM(bundle, series, index) || {}
+    };
 
     return {
         ...bundle,
-        computed: {
-            margins,
-            returns: { roe, roa, roic },
-            efficiency: { asset_turnover: assetTurnover, inventory_turnover: inventoryTurnover },
-            liquidity: { current_ratio: currentRatio, quick_ratio: quickRatio },
-            leverage: { debt_to_equity: debtToEquity },
-            growth: { yoy: yoyGrowth, qoq: qoqGrowth },
-            ttm
-        }
+        computed
     };
 }
 
-/**
- * Helper para obtener valor anidado de un objeto
- * @param {Object} obj
- * @param {string} path - 'income.revenue'
- * @returns {*}
- */
-function getNestedValue(obj, path) {
-    return path.split('.').reduce((acc, part) => acc?.[part], obj);
-}
-
 module.exports = {
+    addComputedMetrics,
     calculateTTM,
     calculateYoY,
     calculateQoQ,
@@ -384,8 +282,5 @@ module.exports = {
     calculateCurrentRatio,
     calculateQuickRatio,
     calculateDebtToEquity,
-    addComputedMetrics,
-    addYoYToSeries,
-    addQoQToSeries,
     getNestedValue
 };

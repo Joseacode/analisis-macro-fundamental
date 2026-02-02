@@ -25,6 +25,9 @@ const {
     addComputedMetrics
 } = require('./metricsCalculator.cjs');
 
+const {
+    getFiscalYearEndMonth
+} = require('./secSubmissions.cjs');
 
 // ===========================
 // FILE CACHE HELPERS
@@ -291,23 +294,80 @@ function uniqueByEndPickBest(items) {
     return [...byEnd.values()].sort((a, b) => (a.end > b.end ? -1 : 1));
 }
 
+// ===========================
+// ✅ VALIDATE BUNDLE CON WARNINGS ESPECÍFICOS + CONTEXT + GAP PRETAX
+// ===========================
 function validateBundle(bundle) {
     const w = [];
+    const warnContext = {};
 
     const r = bundle?.reported?.income?.revenue ?? null;
     const op = bundle?.reported?.income?.operating_income ?? null;
     const ni = bundle?.reported?.income?.net_income ?? null;
+    const otherIncome = bundle?.reported?.income?.other_income ?? null;
+    const incomeBeforeTax = bundle?.reported?.income?.income_before_tax ?? null;
+    const interestIncome = bundle?.reported?.income?.interest_income ?? null;
+    const interestExpense = bundle?.reported?.income?.interest_expense ?? null;
 
     if (r === null || r <= 0) w.push('revenue_missing_or_non_positive');
     if (!bundle?.period?.period_id) w.push('period_id_missing');
     if (!bundle?.period?.quarter_end_date) w.push('quarter_end_date_missing');
-    if (ni != null && op != null && ni > op) {
-        w.push('net_income_gt_operating_income_possible_nonoperating_gains_or_mix');
+
+    // ✅ Warning con thresholds determinísticos
+    if (ni != null && op != null && op > 0 && ni > op * 1.01) {
+        // Net income es >1% mayor que operating income
+        const ratio = otherIncome != null ? otherIncome / op : 0;
+
+        if (otherIncome != null && ratio >= 0.10) {
+            // Other income es >=10% del operating income
+            const warningKey = 'net_income_boosted_by_nonoperating_income';
+            w.push(warningKey);
+            warnContext[warningKey] = {
+                other_income: otherIncome,
+                operating_income: op,
+                net_income: ni,
+                ratio_other_to_operating: ratio,
+                threshold_used: 0.10,
+                description: 'Net income exceeds operating income due to significant non-operating income'
+            };
+        } else {
+            const warningKey = 'net_income_gt_operating_income_small_gap';
+            w.push(warningKey);
+            warnContext[warningKey] = {
+                operating_income: op,
+                net_income: ni,
+                gap: ni - op,
+                gap_percent: ((ni - op) / op) * 100
+            };
+        }
     }
 
-    return w;
+
+    // ✅ NUEVO: Gap entre income_before_tax y operating_income no explicado
+    if (incomeBeforeTax != null && op != null && op > 0) {
+        const gap = incomeBeforeTax - op;
+        const explained = (otherIncome || 0) + (interestIncome || 0) - (interestExpense || 0);
+        const unexplained = gap - explained;
+
+        // Si el gap no explicado es >5% del operating income
+        if (Math.abs(unexplained) > op * 0.05) {
+            const warningKey = 'pretax_vs_operating_gap_unexplained';
+            w.push(warningKey);
+            warnContext[warningKey] = {
+                operating_income: op,
+                income_before_tax: incomeBeforeTax,
+                gap: gap,
+                explained_by_other_interest: explained,
+                unexplained: unexplained,
+                unexplained_pct: (unexplained / op) * 100
+            };
+        }
+    }
+
+    return { warnings: w, warning_context: warnContext };
 }
 
+// ===========================
 function getMonthName(month) {
     const names = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return names[month] || '';
@@ -375,6 +435,25 @@ function extractAllMetrics(facts, anchor) {
         };
     }
 
+    // ✅ NUEVO: Validar si operating_expenses es en realidad total_costs
+    const totalCostsItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.total_costs_and_expenses, 'USD');
+    const totalCosts = extractQuarterValue(totalCostsItems, anchor);
+
+    if (opExpenses?.value != null && costOfRevenue?.value != null && totalCosts?.value != null) {
+        // Si opExpenses está cerca de totalCosts, entonces está mal mapeado
+        const diff = Math.abs(opExpenses.value - totalCosts.value);
+
+        if (diff / totalCosts.value < 0.01) {
+            // opExpenses es en realidad totalCosts, recalcular
+            const trueOpex = totalCosts.value - (costOfRevenue.value || 0);
+            opExpenses = {
+                value: trueOpex,
+                computed: true,
+                method: 'total_costs_minus_cogs'
+            };
+        }
+    }
+
     // ===========================
     // BALANCE SHEET
     // ===========================
@@ -395,7 +474,7 @@ function extractAllMetrics(facts, anchor) {
 
     const apItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.accounts_payable, 'USD');
     const stDebtItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.short_term_debt, 'USD');
-    const accruedItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.accrued_expenses, 'USD');
+    const accruedItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.accrued_liabilities, 'USD');
     const deferredRevCurrentItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.deferred_revenue_current, 'USD');
     const otherCurrentLiabItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.other_current_liabilities, 'USD');
     const currentLiabItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.current_liabilities, 'USD');
@@ -496,7 +575,7 @@ function extractAllMetrics(facts, anchor) {
     const netChange = extractQuarterValue(netChangeItems, anchor);
 
     // ===========================
-    // SHARES - CORREGIDO
+    // SHARES
     // ===========================
     const dilutedSharesItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.diluted_shares, 'shares');
     const basicSharesItems = extractFirstAvailable(facts, CONCEPT_MAPPINGS.basic_shares, 'shares');
@@ -549,7 +628,7 @@ function extractAllMetrics(facts, anchor) {
             total_assets: totalAssets?.value ?? null,
             accounts_payable: ap?.value ?? null,
             short_term_debt: stDebt?.value ?? null,
-            accrued_expenses: accrued?.value ?? null,
+            accrued_liabilities: accrued?.value ?? null,
             deferred_revenue_current: deferredRevCurrent?.value ?? null,
             other_current_liabilities: otherCurrentLiab?.value ?? null,
             current_liabilities: currentLiab?.value ?? null,
@@ -606,8 +685,12 @@ function extractAllMetrics(facts, anchor) {
     };
 }
 
-function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
+// ===========================
+// EXTRACT SERIES WITH FYE FROM SUBMISSIONS
+// ===========================
+async function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
     const facts = companyFactsJson?.facts?.['us-gaap'] ?? {};
+    const cik10 = padCik10(companyFactsJson?.cik);
 
     const revCandidates = CONCEPT_MAPPINGS.revenue;
     let revenueItems = [];
@@ -644,17 +727,29 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
 
     console.log(`Processing ${anchors.length} anchors/quarters`);
 
-    const fiscalYearEndMonth = detectFiscalYearEnd(anchorItems);
-    console.log(`Detected fiscal year end month: ${fiscalYearEndMonth} (${getMonthName(fiscalYearEndMonth)})`);
+    // 🆕 FIX 1: Usar FYE desde SEC Submissions
+    let fiscalYearEndMonth = await getFiscalYearEndMonth(cik10);
 
-    const cik10 = padCik10(companyFactsJson?.cik);
+    if (!fiscalYearEndMonth) {
+        console.warn(`[CompanyFacts] Could not fetch FYE from submissions for CIK ${cik10}, falling back to detection`);
+        fiscalYearEndMonth = detectFiscalYearEnd(anchorItems);
+    }
 
-    // 5) Construir bundles (sin computed metrics primero)
+    console.log(`Fiscal year end month: ${fiscalYearEndMonth} (${getMonthName(fiscalYearEndMonth)})`);
+
+    // Construir bundles
     const series = anchors.map(anchor => {
         console.log(`Processing quarter ${anchor.fp} FY${anchor.fy} end ${anchor.end}`);
 
         const derivedPeriod = deriveFiscalPeriod(anchor.end, fiscalYearEndMonth);
-        const deltaDays = validateFilingDelta(anchor.filed, anchor.end);
+
+        // ✅ validateFilingDelta ya tiene el orden correcto: (end, filed)
+        const deltaRaw = anchor.filed ? validateFilingDelta(anchor.end, anchor.filed) : null;
+
+        // 🆕 FIX 2: Nullear filing_date si delta > 90 días (probable duplicación de fecha)
+        const deltaDays = (deltaRaw !== null && Math.abs(deltaRaw) > 90) ? null : deltaRaw;
+        const filingDate = deltaDays !== null ? anchor.filed : null;
+
         const filingWarnings = [];
 
         if (deltaDays !== null) {
@@ -672,7 +767,7 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
             period: {
                 period_id: derivedPeriod.period_id,
                 quarter_end_date: anchor.end,
-                filing_date: anchor.filed,
+                filing_date: filingDate,
                 currency: 'USD',
                 scaling: 'raw',
                 fiscal_year: derivedPeriod.fiscal_year,
@@ -707,7 +802,13 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
             }
         };
 
-        bundle.warnings = [...validateBundle(bundle), ...filingWarnings];
+        // ✅ Usar validateBundle con context
+        const validation = validateBundle(bundle);
+        bundle.warnings = [...validation.warnings, ...filingWarnings];
+
+        if (Object.keys(validation.warning_context).length > 0) {
+            bundle.warning_context = validation.warning_context;
+        }
 
         if (!bundle._debug.period_match) {
             bundle.warnings.push('period_id_mismatch_sec_vs_derived');
@@ -729,7 +830,7 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
         deduped.push(b);
     }
 
-    // 🆕 AGREGAR COMPUTED METRICS (TTM, YoY, QoQ, Margins, Ratios)
+    // AGREGAR COMPUTED METRICS (TTM, YoY, QoQ, Margins, Ratios)
     console.log(`Adding computed metrics (TTM, YoY, QoQ, margins, ratios)...`);
     const enrichedSeries = deduped.map((bundle, index) => {
         return addComputedMetrics(bundle, deduped, index);
@@ -737,7 +838,6 @@ function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 16) {
 
     return { series: enrichedSeries, latestEndAll };
 }
-
 
 module.exports = {
     normalizeSymbol,

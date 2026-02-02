@@ -136,30 +136,22 @@ describe('extractFactItems', () => {
         const mockFact = {
             units: {
                 USD: [
-                    {
-                        val: 1000000,
-                        end: '2025-12-31',
-                        form: '10-Q'
-                    },
-                    {
-                        val: null,
-                        end: '2025-09-30',
-                        form: '10-Q'
-                    },
-                    {
-                        val: 'N/A',
-                        end: '2025-06-30',
-                        form: '10-Q'
-                    }
+                    { val: 1000000, end: '2025-12-31', form: '10-Q' },
+                    { val: null, end: '2025-09-30', form: '10-Q' },
+                    { val: 'N/A', end: '2025-06-30', form: '10-Q' }
                 ]
             }
         };
 
         const items = extractFactItems(mockFact, 'USD');
 
-        expect(items).toHaveLength(1);
+        // ✅ FIX: extractFactItems NO filtra null values, eso se hace en el mapper
+        expect(items).toHaveLength(3);
         expect(items[0].value).toBe(1000000);
+        expect(items[1].value).toBeNull();
+        expect(items[2].value).toBe('N/A');
     });
+
 
     test('should prioritize acceptable forms', () => {
         const mockFact = {

@@ -48,7 +48,7 @@ function registerFundamentalsRoutes(app) {
             console.log(`[Fundamentals] CompanyFacts fetched for ${sym}`);
 
             // 3. Extraer serie (ahora devuelve objeto con series + debug)
-            const result = extractSeriesFromCompanyFacts(sym, cf, limit);
+            const result = await extractSeriesFromCompanyFacts(sym, cf, limit); // ✅ AGREGADO await
 
             // Extraer series y latestEndAll del resultado
             const series = Array.isArray(result) ? result : (result?.series || []);
@@ -133,7 +133,7 @@ function registerFundamentalsRoutes(app) {
             }
 
             const cf = await fetchCompanyFacts(cik10);
-            const result = extractSeriesFromCompanyFacts(sym, cf, 1);
+            const result = await extractSeriesFromCompanyFacts(sym, cf, 1); // ✅ AGREGADO await
 
             const series = Array.isArray(result) ? result : (result?.series || []);
 
@@ -182,7 +182,7 @@ function registerFundamentalsRoutes(app) {
             }
 
             const cf = await fetchCompanyFacts(cik10);
-            const result = extractSeriesFromCompanyFacts(sym, cf, 40); // Traer más para buscar
+            const result = await extractSeriesFromCompanyFacts(sym, cf, 40); // ✅ AGREGADO await
 
             const series = Array.isArray(result) ? result : (result?.series || []);
 
