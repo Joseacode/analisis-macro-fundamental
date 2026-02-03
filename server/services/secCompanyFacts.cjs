@@ -10,6 +10,13 @@ const fs = require('fs/promises');
 // ===========================
 // IMPORTS
 // ===========================
+
+const {
+    selectAnchorsRobust,
+    isQuarterLike
+} = require('./secCompanyFacts/helpers.cjs');
+
+
 const {
     deriveFiscalPeriod,
     validateFilingDelta,
@@ -162,14 +169,6 @@ function isYTD(item) {
     return !item?.start;
 }
 
-function isQuarterLike(item) {
-    const fp = String(item?.fp ?? '').toUpperCase();
-    if (!['Q1', 'Q2', 'Q3', 'Q4'].includes(fp)) return false;
-    if (!item?.start) return false;
-    const days = daysBetween(item.start, item.end);
-    if (days === null || isNaN(days)) return false;
-    return days >= 80 && days <= 110;
-}
 
 function computeQuarterlyDelta(allItems, anchor) {
     const { end, fy, fp } = anchor;
@@ -259,39 +258,6 @@ function buildPeriodId(picked) {
 
     if (end) return `END_${end}`;
     return null;
-}
-
-function uniqueByEndPickBest(items) {
-    const byEnd = new Map();
-
-    const scoreForm = (form) => {
-        const f = String(form ?? '').toUpperCase();
-        if (f === '10-Q') return 3;
-        if (f === '10-K') return 2;
-        if (f === '8-K') return 1;
-        return 0;
-    };
-
-    for (const it of items) {
-        if (!it?.end || it.value === null) continue;
-
-        const prev = byEnd.get(it.end);
-        if (!prev) {
-            byEnd.set(it.end, it);
-            continue;
-        }
-
-        const filedA = String(it.filed);
-        const filedB = String(prev.filed);
-
-        if (filedA > filedB) {
-            byEnd.set(it.end, it);
-        } else if (filedA === filedB && scoreForm(it.form) > scoreForm(prev.form)) {
-            byEnd.set(it.end, it);
-        }
-    }
-
-    return [...byEnd.values()].sort((a, b) => (a.end > b.end ? -1 : 1));
 }
 
 // ===========================
@@ -693,20 +659,23 @@ async function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 1
     const cik10 = padCik10(companyFactsJson?.cik);
 
     const revCandidates = CONCEPT_MAPPINGS.revenue;
-    let revenueItems = [];
+    let bestRevenue = { key: null, items: [], maxEnd: null };
     for (const k of revCandidates) {
-        const items = extractFirstAvailable(facts, [k], 'USD');
-        if (items?.length) {
-            console.log(`Using revenue concept: ${k}`);
-            revenueItems = items;
-            break;
+        const items = extractFirstAvailable(facts, [k], 'USD') || [];
+        const maxEnd = items.map(x => x?.end).filter(Boolean).sort().at(-1) || null;
+
+        if (!bestRevenue.maxEnd || (maxEnd && maxEnd > bestRevenue.maxEnd)) {
+            bestRevenue = { key: k, items, maxEnd };
         }
     }
 
-    let anchorItems = revenueItems?.length
-        ? revenueItems
-        : extractFirstAvailable(facts, CONCEPT_MAPPINGS.net_income, 'USD');
 
+    let revenueItems = bestRevenue.items || [];
+    console.log(`Revenue items selected: ${revenueItems.length}`);
+    let anchorItems = revenueItems.length
+        ? revenueItems
+        : (extractFirstAvailable(facts, CONCEPT_MAPPINGS.net_income, 'USD') || []);
+    console.log(`Anchor items selected: ${anchorItems.length} (source: ${revenueItems.length ? 'revenue' : 'net_income'})`);
     const latestEndAll = anchorItems
         .map(x => x?.end)
         .filter(Boolean)
@@ -716,10 +685,11 @@ async function extractSeriesFromCompanyFacts(ticker, companyFactsJson, limit = 1
     console.log(`Latest end date available:`, latestEndAll);
     console.log(`Total anchor items BEFORE filter:`, anchorItems.length);
 
-    anchorItems = anchorItems.filter(isQuarterLike);
-    console.log(`Total anchor items AFTER isQuarterLike filter:`, anchorItems.length);
+    const anchors = selectAnchorsRobust(anchorItems, { max: Math.max(1, limit) });
 
-    const anchors = uniqueByEndPickBest(anchorItems).slice(0, Math.max(1, limit));
+    console.log(`Total anchors AFTER selectAnchorsRobust:`, anchors.length);
+
+
 
     if (!anchors.length) {
         return { series: [], latestEndAll };

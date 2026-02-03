@@ -517,7 +517,9 @@ function registerEarningsRoutes(app) {
 
             cf.cik = cik10;
 
-            const bundle = extractBundleFromCompanyFacts(sym, cf);
+            const { series } = await extractSeriesFromCompanyFacts(sym, cf, 1);
+            const bundle = series?.[0] ?? null;
+
             const out = computeDerived(bundle);
 
             res.json({ ok: true, ticker: sym, cik: cik10, bundle: out });
